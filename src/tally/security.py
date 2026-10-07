@@ -82,9 +82,7 @@ def setup_reader(
     conn.execute(sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA {} FROM {}").format(schema_ident, ident))
     conn.execute(sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(schema_ident, ident))
     if app_schema:
-        conn.execute(
-            sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(sql.Identifier(app_schema), ident)
-        )
+        conn.execute(sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(sql.Identifier(app_schema), ident))
     granted: dict[str, list[str]] = {}
     for table in selected:
         if table not in available:

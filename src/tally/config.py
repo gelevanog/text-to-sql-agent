@@ -115,8 +115,8 @@ class Settings(BaseSettings):
         default=None, validation_alias=AliasChoices("QWEN_API_KEY", "DASHSCOPE_API_KEY", "TALLY_QWEN_API_KEY")
     )
     qwen_base_url: str = DEFAULT_QWEN_BASE_URL
-    qwen_enable_thinking: bool = False
-    """Qwen3 hybrid models: sent as enable_thinking (off keeps latency and token use down for SQL generation)."""
+    qwen_enable_thinking: bool | None = None
+    """Sent as enable_thinking to Qwen3 hybrid-thinking models when set (false keeps latency and tokens down)."""
     openai_api_key: str | None = Field(default=None, validation_alias=AliasChoices("OPENAI_API_KEY"))
     openai_base_url: str = Field(default="https://api.openai.com/v1", validation_alias=AliasChoices("OPENAI_BASE_URL"))
     anthropic_api_key: str | None = Field(default=None, validation_alias=AliasChoices("ANTHROPIC_API_KEY"))

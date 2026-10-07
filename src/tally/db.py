@@ -1,4 +1,4 @@
-"""PostgreSQL connections: the owner (schema, seed, Tally's own tables) and the read-only reader (every generated query).
+"""PostgreSQL connections: the owner (schema, seed, Tally's own tables) and the read-only reader (generated queries).
 
 The two roles are separate logins on purpose. Generated SQL never runs on the owner connection, so even a query that
 slipped past the validator would run as a role that can only SELECT allow-listed columns, inside a read-only

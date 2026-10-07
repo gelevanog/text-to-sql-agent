@@ -58,7 +58,9 @@ class Catalog:
 
     @property
     def pii(self) -> dict[str, set[str]]:
-        return {t.name: {c.name for c in t.columns if c.pii} for t in self.tables.values() if any(c.pii for c in t.columns)}
+        return {
+            t.name: {c.name for c in t.columns if c.pii} for t in self.tables.values() if any(c.pii for c in t.columns)
+        }
 
     def sqlglot_schema(self) -> dict[str, dict[str, str]]:
         """Base tables only (views are expanded into CTEs before validation); PII columns included so that they
@@ -72,17 +74,22 @@ class Catalog:
             name: TableInfo(
                 name=t.name,
                 columns=[
-                    ColumnInfo(c.name, c.type, c.nullable, c.primary_key, c.references if c.references else None,
-                               pii=c.pii, samples=c.samples)  # fmt: skip
+                    ColumnInfo(
+                        c.name,
+                        c.type,
+                        c.nullable,
+                        c.primary_key,
+                        c.references if c.references else None,
+                        pii=c.pii,
+                        samples=c.samples,
+                    )
                     for c in t.columns
                 ],
                 row_count=t.row_count,
             )
             for name, t in self.tables.items()
         }
-        fk_joins = [
-            (f"{t.name}.{c.name}", c.references) for t in tables.values() for c in t.columns if c.references
-        ]
+        fk_joins = [(f"{t.name}.{c.name}", c.references) for t in tables.values() for c in t.columns if c.references]
         return Catalog(tables=tables, views={}, layer=EMPTY_LAYER, joins=fk_joins)
 
     def to_json(self) -> dict[str, Any]:
@@ -175,10 +182,10 @@ def introspect(
                 pii=pii,
             )
         )
-    counts = dict(
+    counts: dict[str, int] = dict(
         conn.execute(
-            "SELECT relname, GREATEST(reltuples, 0)::bigint FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
-            "WHERE n.nspname = %s AND c.relkind = 'r'",
+            "SELECT relname, GREATEST(reltuples, 0)::bigint FROM pg_class c "
+            "JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = %s AND c.relkind = 'r'",
             (schema,),
         ).fetchall()
     )
@@ -241,7 +248,7 @@ def view_column_types(conn: psycopg.Connection, layer: SemanticLayer) -> dict[st
         with conn.transaction(), conn.cursor() as cur:
             cur.execute("SET TRANSACTION READ ONLY")
             cur.execute("SELECT set_config('tally.region_scope', '*', true)")
-            cur.execute(sql.SQL("SELECT * FROM ({}) AS v LIMIT 0").format(sql.SQL(view.sql)))  # type: ignore[arg-type]
+            cur.execute(sql.SQL("SELECT * FROM ({}) AS v LIMIT 0").format(sql.SQL(view.sql)))
             columns: list[tuple[str, str]] = []
             for desc in cur.description or []:
                 type_info = conn.adapters.types.get(desc.type_code)

@@ -74,7 +74,7 @@ def seed(
                 conn.execute(sql.SQL("DROP TABLE IF EXISTS {} CASCADE").format(sql.Identifier(schema, table)))
         conn.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(schema)))
         conn.execute(sql.SQL("SET LOCAL search_path = {}").format(sql.Identifier(schema)))
-        conn.execute(ddl)  # type: ignore[call-overload]  # a trusted packaged file
+        conn.execute(ddl)  # a trusted packaged file
         with conn.cursor() as cur:
             for table, rows in tables.rows.items():
                 columns = sql.SQL(", ").join(sql.Identifier(c) for c in tables.columns[table])
