@@ -124,8 +124,12 @@ class BudgetedModel:
         max_retries: int = 4,
         retry_base_seconds: float = 5.0,
         tag: str = "",
+        policy_fallback: ChatModel | None = None,
     ) -> None:
         self.inner = inner
+        self.policy_fallback = policy_fallback
+        """Asked instead when the provider refuses a prompt outright (HTTP 403, e.g. "Access denied by security
+        policy"), which OpenRouter's own fallback list does not cover. Its calls go through the same ledger."""
         self.ledger = ledger
         self.cache = cache
         self.throttle = throttle
@@ -152,6 +156,7 @@ class BudgetedModel:
             max_retries=self.max_retries,
             retry_base_seconds=self.retry_base_seconds,
             tag=tag,
+            policy_fallback=self.policy_fallback,
         )
 
     def complete(self, messages: Sequence[Message], *, max_tokens: int, temperature: float = 0.0) -> Completion:
@@ -172,8 +177,18 @@ class BudgetedModel:
             except RetryableLLMError as exc:
                 last = exc
                 self._record("retryable_error", started, error=str(exc))
-            except (PolicyViolationError, LLMError) as exc:
+            except PolicyViolationError as exc:
                 self._record("error", started, error=str(exc))
+                raise
+            except LLMError as exc:
+                self._record("error", started, error=str(exc))
+                if self.policy_fallback is not None and "upstream 403" in str(exc):
+                    log.warning("llm.policy_fallback", tag=self.tag, fallback=self.policy_fallback.label)
+                    completion = self.policy_fallback.complete(messages, max_tokens=max_tokens, temperature=temperature)
+                    if self.cache is not None:
+                        self.cache.put(key, completion)
+                    self.last_served = completion.model
+                    return completion
                 raise
             else:
                 self._record("ok", started, completion=completion)

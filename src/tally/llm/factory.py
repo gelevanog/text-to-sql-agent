@@ -72,11 +72,30 @@ def budgeted(model: ChatModel, settings: Settings, *, tag: str, cache: bool | No
     if model.is_local:
         return model
     use_cache = settings.llm_cache if cache is None else cache
+    ledger = CallLedger(settings.llm_ledger, settings.llm_max_calls)
+    throttle = Throttle(settings.llm_min_seconds_between_requests)
+    policy_fallback: ChatModel | None = None
+    if isinstance(model, OpenAICompatibleModel) and model.kind == "openrouter" and model.fallback_models:
+        # A provider-side 403 is not covered by OpenRouter's `models` list: ask the next free model directly.
+        nxt, *rest = model.fallback_models
+        alternative = OpenAICompatibleModel(
+            kind="openrouter",
+            base_url=settings.openrouter_base_url,
+            model=nxt,
+            api_key=settings.openrouter_api_key,
+            fallback_models=rest,
+            require_free=settings.require_free_models,
+            timeout_seconds=settings.llm_timeout_seconds,
+            reasoning_effort=settings.llm_reasoning_effort,
+        )
+        policy_fallback = BudgetedModel(alternative, ledger=ledger, cache=None, throttle=throttle,
+                                        max_retries=settings.llm_max_retries, tag=f"{tag}:policy_fallback")  # fmt: skip
     return BudgetedModel(
         model,
-        ledger=CallLedger(settings.llm_ledger, settings.llm_max_calls),
+        ledger=ledger,
         cache=DiskCache(settings.llm_cache_dir) if use_cache else None,
-        throttle=Throttle(settings.llm_min_seconds_between_requests),
+        throttle=throttle,
         max_retries=settings.llm_max_retries,
         tag=tag,
+        policy_fallback=policy_fallback,
     )

@@ -28,8 +28,11 @@ FAKE_KEY = "-".join(["test", "key", "not", "real"])
 
 
 def ok_response(model: str, content: str = '{"action": "sql", "sql": "SELECT 1"}') -> dict[str, Any]:
-    return {"model": model, "choices": [{"message": {"content": content}, "finish_reason": "stop"}],
-            "usage": {"prompt_tokens": 10, "completion_tokens": 5}}  # fmt: skip
+    return {
+        "model": model,
+        "choices": [{"message": {"content": content}, "finish_reason": "stop"}],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+    }
 
 
 class Recorder:
@@ -52,16 +55,26 @@ def test_free_only_guard_refuses_paid_ids_and_paid_fallbacks() -> None:
     with pytest.raises(PolicyViolationError):
         ensure_free_models(["openai/gpt-5"])
     with pytest.raises(PolicyViolationError):
-        OpenAICompatibleModel(kind="openrouter", base_url="https://openrouter.ai/api/v1", api_key=FAKE_KEY,
-                              model="x/free-model:free", fallback_models=["anthropic/claude-sonnet-5"])  # fmt: skip
+        OpenAICompatibleModel(
+            kind="openrouter",
+            base_url="https://openrouter.ai/api/v1",
+            api_key=FAKE_KEY,
+            model="x/free-model:free",
+            fallback_models=["anthropic/claude-sonnet-5"],
+        )
 
 
 def test_free_only_guard_rejects_an_answer_served_by_a_paid_model() -> None:
     ensure_served_free("vendor/model:free")
     ensure_served_free(None)
     recorder = Recorder([httpx.Response(200, json=ok_response("vendor/paid-model"))])
-    model = OpenAICompatibleModel(kind="openrouter", base_url="https://openrouter.ai/api/v1", api_key=FAKE_KEY,
-                                  model="vendor/model:free", transport=recorder.transport)  # fmt: skip
+    model = OpenAICompatibleModel(
+        kind="openrouter",
+        base_url="https://openrouter.ai/api/v1",
+        api_key=FAKE_KEY,
+        model="vendor/model:free",
+        transport=recorder.transport,
+    )
     with pytest.raises(PolicyViolationError):
         model.complete(MESSAGES, max_tokens=100)
 
@@ -84,9 +97,15 @@ def test_free_only_guard_does_not_apply_to_other_providers() -> None:
 # ---- request shapes --------------------------------------------------------------------------------------------
 def test_openrouter_request_shape() -> None:
     recorder = Recorder([httpx.Response(200, json=ok_response("vendor/model:free"))])
-    model = OpenAICompatibleModel(kind="openrouter", base_url="https://openrouter.ai/api/v1/", api_key=FAKE_KEY,
-                                  model="vendor/model:free", fallback_models=["other/model:free"],
-                                  reasoning_effort="low", transport=recorder.transport)  # fmt: skip
+    model = OpenAICompatibleModel(
+        kind="openrouter",
+        base_url="https://openrouter.ai/api/v1/",
+        api_key=FAKE_KEY,
+        model="vendor/model:free",
+        fallback_models=["other/model:free"],
+        reasoning_effort="low",
+        transport=recorder.transport,
+    )
     completion = model.complete(MESSAGES, max_tokens=321, temperature=0.0)
     request = recorder.requests[0]
     body = json.loads(request.content)
@@ -145,8 +164,9 @@ def test_missing_keys_fail_clearly() -> None:
 )
 def test_error_mapping(status: int, payload: dict[str, Any], error: type[Exception]) -> None:
     recorder = Recorder([httpx.Response(status, json=payload, headers={"retry-after": "2"})])
-    model = OpenAICompatibleModel(kind="openai", base_url="https://api.example.test/v1", api_key=FAKE_KEY, model="m",
-                                  transport=recorder.transport)  # fmt: skip
+    model = OpenAICompatibleModel(
+        kind="openai", base_url="https://api.example.test/v1", api_key=FAKE_KEY, model="m", transport=recorder.transport
+    )
     with pytest.raises(error) as info:
         model.complete(MESSAGES, max_tokens=10)
     if status == 429:
@@ -155,15 +175,28 @@ def test_error_mapping(status: int, payload: dict[str, Any], error: type[Excepti
 
 # ---- budget wrapper ----------------------------------------------------------------------------------------------
 def test_budget_wrapper_retries_records_and_caches(tmp_path: Path) -> None:
-    recorder = Recorder([
-        httpx.Response(429, json={"error": {"message": "rate-limited upstream"}}),
-        httpx.Response(200, json=ok_response("vendor/model:free")),
-    ])  # fmt: skip
-    inner = OpenAICompatibleModel(kind="openrouter", base_url="https://openrouter.ai/api/v1", api_key=FAKE_KEY,
-                                  model="vendor/model:free", transport=recorder.transport)  # fmt: skip
+    recorder = Recorder(
+        [
+            httpx.Response(429, json={"error": {"message": "rate-limited upstream"}}),
+            httpx.Response(200, json=ok_response("vendor/model:free")),
+        ]
+    )
+    inner = OpenAICompatibleModel(
+        kind="openrouter",
+        base_url="https://openrouter.ai/api/v1",
+        api_key=FAKE_KEY,
+        model="vendor/model:free",
+        transport=recorder.transport,
+    )
     ledger_path = tmp_path / "calls.jsonl"
-    model = BudgetedModel(inner, ledger=CallLedger(ledger_path, 10), cache=DiskCache(tmp_path / "cache"),
-                          throttle=Throttle(0), retry_base_seconds=0.0, tag="test")  # fmt: skip
+    model = BudgetedModel(
+        inner,
+        ledger=CallLedger(ledger_path, 10),
+        cache=DiskCache(tmp_path / "cache"),
+        throttle=Throttle(0),
+        retry_base_seconds=0.0,
+        tag="test",
+    )
     prompt: list[Message] = [{"role": "user", "content": "prompt-text-that-must-not-be-logged"}]
     first = model.complete(prompt, max_tokens=50)
     again = model.complete(prompt, max_tokens=50)
@@ -177,8 +210,9 @@ def test_budget_wrapper_retries_records_and_caches(tmp_path: Path) -> None:
 
 def test_budget_wrapper_stops_at_the_hard_budget(tmp_path: Path) -> None:
     recorder = Recorder([httpx.Response(200, json=ok_response("m"))])
-    inner = OpenAICompatibleModel(kind="openai", base_url="https://api.example.test/v1", api_key=FAKE_KEY, model="m",
-                                  transport=recorder.transport)  # fmt: skip
+    inner = OpenAICompatibleModel(
+        kind="openai", base_url="https://api.example.test/v1", api_key=FAKE_KEY, model="m", transport=recorder.transport
+    )
     ledger_path = tmp_path / "calls.jsonl"
     ledger_path.write_text('{"status": "ok"}\n' * 3)
     model = BudgetedModel(inner, ledger=CallLedger(ledger_path, 3), cache=None, throttle=None)
@@ -224,11 +258,21 @@ def test_anthropic_provider_request_shape() -> None:
 def test_embeddings_guarded_cached_and_recorded(tmp_path: Path) -> None:
     with pytest.raises(PolicyViolationError):
         OpenRouterEmbedder(model="vendor/paid-embedder", api_key=FAKE_KEY)
-    recorder = Recorder([httpx.Response(200, json={"data": [{"index": 1, "embedding": [0.0, 1.0]},
-                                                            {"index": 0, "embedding": [1.0, 0.0]}]})])  # fmt: skip
+    recorder = Recorder(
+        [
+            httpx.Response(
+                200, json={"data": [{"index": 1, "embedding": [0.0, 1.0]}, {"index": 0, "embedding": [1.0, 0.0]}]}
+            )
+        ]
+    )
     ledger = CallLedger(tmp_path / "calls.jsonl", 5)
-    embed = OpenRouterEmbedder(model="liquid/lfm-2.5-embedding-350m:free", api_key=FAKE_KEY, cache_dir=tmp_path,
-                               ledger=ledger, transport=recorder.transport)  # fmt: skip
+    embed = OpenRouterEmbedder(
+        model="liquid/lfm-2.5-embedding-350m:free",
+        api_key=FAKE_KEY,
+        cache_dir=tmp_path,
+        ledger=ledger,
+        transport=recorder.transport,
+    )
     assert embed(["a", "b"]) == [[1.0, 0.0], [0.0, 1.0]]
     assert embed(["b"]) == [[0.0, 1.0]]  # from the cache
     assert len(recorder.requests) == 1
@@ -242,14 +286,16 @@ def test_fake_model_follows_the_playbook_with_follow_ups() -> None:
         playbook_key("Only EU", "Show orders"): {"action": "sql", "sql": "SELECT 2"},
     }
     fake = FakeModel(playbook)
-    first = fake.complete([{"role": "system", "content": "x"}, {"role": "user", "content": "QUESTION: Show orders?"}],
-                          max_tokens=10)  # fmt: skip
+    first = fake.complete(
+        [{"role": "system", "content": "x"}, {"role": "user", "content": "QUESTION: Show orders?"}], max_tokens=10
+    )
     assert json.loads(first.text)["sql"] == "SELECT 1"
     follow = "[1] Previous question: Show orders\nQUESTION: only EU"
     second = fake.complete([{"role": "system", "content": "x"}, {"role": "user", "content": follow}], max_tokens=10)
     assert json.loads(second.text)["sql"] == "SELECT 2"
-    unknown = fake.complete([{"role": "system", "content": "x"}, {"role": "user", "content": "QUESTION: ?"}],
-                            max_tokens=10)  # fmt: skip
+    unknown = fake.complete(
+        [{"role": "system", "content": "x"}, {"role": "user", "content": "QUESTION: ?"}], max_tokens=10
+    )
     assert json.loads(unknown.text)["action"] == "refuse"
 
 
@@ -275,3 +321,50 @@ def test_reply_parsing_rejects_garbage_and_keeps_clarifications() -> None:
         parse_plan('{"action": "sql", "sql": ""}')
     plan = parse_plan('{"action": "clarify", "clarification": {"question": "Which?", "options": ["a", "b"]}}')
     assert plan.action == "clarify" and plan.clarification_options == ["a", "b"]
+
+
+def test_a_provider_403_is_retried_once_on_the_next_free_model(tmp_path: Path) -> None:
+    denied = Recorder([httpx.Response(403, json={"error": {"message": "Access denied by security policy."}})])
+    backup = Recorder([httpx.Response(200, json=ok_response("other/model:free"))])
+    ledger = CallLedger(tmp_path / "calls.jsonl", 10)
+    primary = OpenAICompatibleModel(
+        kind="openrouter",
+        base_url="https://openrouter.ai/api/v1",
+        api_key=FAKE_KEY,
+        model="vendor/model:free",
+        fallback_models=["other/model:free"],
+        transport=denied.transport,
+    )
+    alternative = OpenAICompatibleModel(
+        kind="openrouter",
+        base_url="https://openrouter.ai/api/v1",
+        api_key=FAKE_KEY,
+        model="other/model:free",
+        transport=backup.transport,
+    )
+    model = BudgetedModel(
+        primary,
+        ledger=ledger,
+        cache=None,
+        throttle=None,
+        policy_fallback=BudgetedModel(alternative, ledger=ledger, cache=None, throttle=None),
+    )
+    assert model.complete(MESSAGES, max_tokens=10).model == "other/model:free"
+    rows = [json.loads(line) for line in (tmp_path / "calls.jsonl").read_text().splitlines()]
+    assert [(r["requested_model"], r["status"]) for r in rows] == [
+        ("vendor/model:free", "error"),
+        ("other/model:free", "ok"),
+    ]
+
+
+def test_factory_wires_the_policy_fallback() -> None:
+    settings = Settings(
+        llm_provider="openrouter",
+        openrouter_api_key=FAKE_KEY,
+        llm_model="a/b:free",
+        llm_fallback_models=["c/d:free", "e/f:free"],
+        llm_ledger=None,
+    )
+    model = budgeted(build_chat_model(settings), settings, tag="t")
+    assert isinstance(model, BudgetedModel) and model.policy_fallback is not None
+    assert model.policy_fallback.label == "openrouter/c/d:free"

@@ -31,8 +31,10 @@ def test_answers_with_sql_result_chart_and_checked_answer(agent_factory: Factory
 
     agent, model = agent_factory([sql_reply(NET_BY_REGION), answer])
     steps: list[str] = []
-    result = agent.run("What was net revenue by region last calendar quarter?",
-                       emit=lambda event, data: steps.append(data.get("kind", event)))  # fmt: skip
+    result = agent.run(
+        "What was net revenue by region last calendar quarter?",
+        emit=lambda event, data: steps.append(data.get("kind", event)),
+    )
     assert result.status == "answered"
     assert result.views == ["order_revenue"] and result.expanded_sql.upper().startswith("WITH ORDER_REVENUE AS")
     assert result.columns == ["region_code", "net_revenue_usd"] and result.row_count == 5
@@ -95,7 +97,7 @@ def test_without_self_correction_the_first_error_is_final(agent_factory: Factory
     ],
 )
 def test_unsafe_sql_is_blocked_without_a_second_try(agent_factory: Factory, sql: str, layer: str) -> None:
-    agent, model = agent_factory([sql_reply(sql)])
+    agent, _ = agent_factory([sql_reply(sql)])
     result = agent.run("Do something unsafe")
     assert result.status == "blocked" and result.blocked and result.blocked["layer"] == layer
     assert result.llm_calls == 1 and result.rows == [] and result.executed_sql == ""
@@ -132,7 +134,7 @@ def test_refusal_and_model_clarification(agent_factory: Factory) -> None:
 
 
 def test_clarification_policy_asks_before_any_model_call(agent_factory: Factory) -> None:
-    agent, model = agent_factory([])
+    agent, _ = agent_factory([])
     result = agent.run("What was revenue last quarter?")
     assert result.status == "clarification" and result.llm_calls == 0
     assert result.clarification["id"] == "revenue_basis"  # type: ignore[index]
@@ -141,8 +143,16 @@ def test_clarification_policy_asks_before_any_model_call(agent_factory: Factory)
 
 def test_clarification_replies_resolve_and_rerun_the_original_question(services: Services) -> None:
     store = InMemoryStore()
-    model = ScriptedModel([sql_reply(NET_BY_REGION.replace("region_code, ", "").replace(" GROUP BY region_code", "")
-                                     .replace("ORDER BY 2 DESC", "")), "Net revenue was up."])  # fmt: skip
+    model = ScriptedModel(
+        [
+            sql_reply(
+                NET_BY_REGION.replace("region_code, ", "")
+                .replace(" GROUP BY region_code", "")
+                .replace("ORDER BY 2 DESC", "")
+            ),
+            "Net revenue was up.",
+        ]
+    )
     agent = make_agent(services, llm=model, store=store)
     first = agent.run("What was revenue last quarter?")
     second = agent.run("Net revenue please", conversation_id=first.conversation_id)

@@ -202,6 +202,7 @@ def eval_run(
     semantic_layer: Annotated[bool, typer.Option(help="Use the semantic layer")] = True,
     max_corrections: Annotated[int | None, typer.Option(help="Self-correction retries")] = None,
     embeddings: Annotated[str | None, typer.Option(help="off | openrouter")] = None,
+    merge: Annotated[bool, typer.Option(help="Replace only these items in an existing results/<name>.json")] = False,
 ) -> None:
     """Run the benchmark through the full agent and score it (results/<name>.json)."""
     from tally.agent.store import InMemoryStore
@@ -252,7 +253,13 @@ def eval_run(
         "embeddings": services.settings.embeddings,
         "today": services.settings.effective_today.isoformat(),
     }
-    payload = save_run(settings.results_dir / f"{name}.json", name=name, config=config, records=records)
+    path = settings.results_dir / f"{name}.json"
+    if merge and path.exists():
+        previous = json.loads(path.read_text(encoding="utf-8"))
+        rerun = {r["id"]: {**r, "rerun": True} for r in records}
+        records = [rerun.get(r["id"], r) for r in previous["items"]]
+        config = {**previous["config"], "reruns": sorted({*previous["config"].get("reruns", []), *rerun})}
+    payload = save_run(path, name=name, config=config, records=records)
     summary = payload["summary"]
     ex = summary["execution_accuracy"]
     console.print(f"[bold]{name}[/bold]: execution accuracy {ex['accuracy']}% ({ex['correct']}/{ex['total']}), "
