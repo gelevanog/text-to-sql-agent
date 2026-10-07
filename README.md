@@ -12,6 +12,10 @@
 ![mypy strict](https://img.shields.io/badge/mypy-strict-2a6db2)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
+https://github.com/user-attachments/assets/7b87de58-e4dd-42a2-a7b6-5dec55c57a13
+
+<sub>62-second walkthrough with voiceover. Can't play it? [Download the MP4](docs/demo.mp4).</sub>
+
 ![A question in plain English, the streamed steps, the answer with checked numbers, an automatically chosen chart, the result table and the SQL with its explanation](docs/screenshots/hero.png)
 
 <sub>A real answer from the free `nvidia/nemotron-3-super-120b-a12b:free` in the web app: Tally found the `order_revenue` semantic view, wrote the SQL (shown with its plain-English explanation and plan), validated and cost-checked it, ran it as the read-only role in 107 ms, chose a grouped bar chart by rule, and every number in the model's answer passed the check against the result. Europe's 15.6% drop is one of the stories planted in the demo data; the [follow-up screenshot](#screenshots) asks which country drove it.</sub>
