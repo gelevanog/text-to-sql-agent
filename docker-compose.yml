@@ -1,0 +1,59 @@
+# Tally: PostgreSQL with the generated demo database, the API, the Next.js web app.
+#   docker compose up --build       -> web on http://localhost:3000, API on http://localhost:8000
+# With no keys the offline demo model answers the saved and benchmark questions. For free cloud models put
+# OPENROUTER_API_KEY and TALLY_LLM_PROVIDER=openrouter in .env (see README > Run with free models via OpenRouter).
+name: tally
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: tally
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tally}
+      POSTGRES_DB: tally
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tally -d tally"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build: .
+    image: tally-api:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TALLY_DATABASE_URL: postgresql://tally:${POSTGRES_PASSWORD:-tally}@postgres:5432/tally
+      TALLY_READER_PASSWORD: ${TALLY_READER_PASSWORD:-tally_reader}
+      TALLY_LLM_PROVIDER: ${TALLY_LLM_PROVIDER:-fake}
+      TALLY_SEED_DEMO: "true"
+      TALLY_CORS_ORIGINS: http://localhost:${WEB_PORT:-3000}
+    volumes:
+      - llmcache:/home/app/.cache
+    ports:
+      - "${API_PORT:-8000}:8000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8000}
+    image: tally-web:latest
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  llmcache:

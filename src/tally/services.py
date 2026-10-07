@@ -173,7 +173,7 @@ def build_services(
                     scale=settings.demo_scale,
                     rls=settings.rls,
                 )
-                log.info("seed.created", rows=report.total_rows, seconds=report.seconds)
+                log.info("seed.created", total_rows=report.total_rows, seconds=report.seconds)
     if settings.region_scope != "*":
         with db.owner() as conn:
             if not region_scope_enabled(conn, schema=settings.data_schema):

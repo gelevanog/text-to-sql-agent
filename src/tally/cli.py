@@ -220,8 +220,11 @@ def eval_run(
         services.settings,
         tag=f"eval:{name}",
     )
-    overrides: dict[str, Any] = {"retrieval_mode": retrieval, "semantic_layer": semantic_layer,
-                                 "generate_answer": answers}  # fmt: skip
+    overrides: dict[str, Any] = {
+        "retrieval_mode": retrieval,
+        "semantic_layer": semantic_layer,
+        "generate_answer": answers,
+    }
     if max_corrections is not None:
         overrides["max_corrections"] = max_corrections
     agent = make_agent(services, llm=llm, store=InMemoryStore(), **overrides)
@@ -233,13 +236,20 @@ def eval_run(
 
     def progress(item_id: str, record: dict[str, Any]) -> None:
         verdict = record.get("correct", record.get("clarified", record.get("blocked")))
-        err.print(f"{item_id:20} {record['status']:13} {'ok ' if verdict else 'MISS'} "
-                  f"calls={record['llm_calls']} {record['total_ms'] / 1000:.1f}s")  # fmt: skip
+        err.print(
+            f"{item_id:20} {record['status']:13} {'ok ' if verdict else 'MISS'} "
+            f"calls={record['llm_calls']} {record['total_ms'] / 1000:.1f}s"
+        )
 
     records = run_benchmark(
-        agent, items, all_items=all_items, gold=gold, executor=services.executor, pii=services.catalog.pii,
+        agent,
+        items,
+        all_items=all_items,
+        gold=gold,
+        executor=services.executor,
+        pii=services.catalog.pii,
         progress=progress,
-    )  # fmt: skip
+    )
     config = {
         "model": llm.label,
         "fallback_models": services.settings.llm_fallback_models
@@ -262,10 +272,12 @@ def eval_run(
     payload = save_run(path, name=name, config=config, records=records)
     summary = payload["summary"]
     ex = summary["execution_accuracy"]
-    console.print(f"[bold]{name}[/bold]: execution accuracy {ex['accuracy']}% ({ex['correct']}/{ex['total']}), "
-                  f"safety {summary['safety']['blocked_or_refused']}/{summary['safety']['unsafe_total']} blocked, "
-                  f"clarification recall {summary['clarification']['recall']}% precision "
-                  f"{summary['clarification']['precision']}%, model calls {summary['llm_calls']['total']}")  # fmt: skip
+    console.print(
+        f"[bold]{name}[/bold]: execution accuracy {ex['accuracy']}% ({ex['correct']}/{ex['total']}), "
+        f"safety {summary['safety']['blocked_or_refused']}/{summary['safety']['unsafe_total']} blocked, "
+        f"clarification recall {summary['clarification']['recall']}% precision "
+        f"{summary['clarification']['precision']}%, model calls {summary['llm_calls']['total']}"
+    )
     services.close()
 
 
@@ -311,12 +323,16 @@ def eval_smoke(
     path = settings.results_dir / "smoke.json"
     report: dict[str, Any] = json.loads(path.read_text()) if path.exists() else {"models": {}}
     for model_id in _split(models) or []:
-        llm = budgeted(build_chat_model(services.settings, model=model_id, fallback_models=[]), services.settings,
-                       tag=f"smoke:{model_id}")  # fmt: skip
+        llm = budgeted(
+            build_chat_model(services.settings, model=model_id, fallback_models=[]),
+            services.settings,
+            tag=f"smoke:{model_id}",
+        )
         agent = make_agent(services, llm=llm, store=InMemoryStore(), generate_answer=False, max_corrections=0)
         try:
-            records = run_benchmark(agent, items, all_items=all_items, gold=gold, executor=services.executor,
-                                    pii=services.catalog.pii)  # fmt: skip
+            records = run_benchmark(
+                agent, items, all_items=all_items, gold=gold, executor=services.executor, pii=services.catalog.pii
+            )
         except Exception as exc:
             records = [{"error": str(exc)[:300]}]
         report["models"][model_id] = [
@@ -325,6 +341,74 @@ def eval_smoke(
         ]
         console.print(model_id, [(r.get("id"), r.get("status"), r.get("correct")) for r in records])
     path.write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8")
+
+
+@eval_app.command("compare")
+def eval_compare() -> None:
+    """Ablations and model comparison on the stratified subset (results/comparison.json)."""
+    from tally.eval.benchmark import load_benchmark
+    from tally.eval.runner import summarize
+
+    settings = _settings()
+    subset = {i.id for i in load_benchmark(settings.benchmark_file) if i.subset}
+    labels = {
+        "main": "Tally: retrieval + semantic layer + self-correction",
+        "ablation_full_schema": "Full schema dump instead of retrieval",
+        "ablation_no_semantic_layer": "Without the semantic layer",
+    }
+    rows: list[dict[str, Any]] = []
+
+    def add(name: str, label: str, run: dict[str, Any], records: list[dict[str, Any]], note: str = "") -> None:
+        summary = summarize(records)
+        ex = summary["execution_accuracy"]
+        rows.append(
+            {
+                "name": name,
+                "label": label,
+                "model": run["config"].get("model", ""),
+                "items": len(records),
+                "accuracy": ex["accuracy"],
+                "correct": ex["correct"],
+                "total": ex["total"],
+                "valid_sql": summary["valid_sql"]["rate"],
+                "calls_mean": summary["llm_calls"]["mean"],
+                "latency_p50": summary["latency_ms"]["p50"],
+                "latency_p95": summary["latency_ms"]["p95"],
+                "safety": f"{summary['safety']['blocked_or_refused']}/{summary['safety']['unsafe_total']}",
+                "note": note,
+            }
+        )
+
+    runs = {p.stem: json.loads(p.read_text()) for p in settings.results_dir.glob("*.json")}
+    if "main" in runs:
+        main = [r for r in runs["main"]["items"] if r["id"] in subset]
+        add("main", labels["main"], runs["main"], main, "includes the answer step")
+        first = [{**r, "correct": r.get("first_attempt_correct", r.get("correct"))} for r in main]
+        add(
+            "no_self_correction",
+            "Without self-correction (first attempt of the same run)",
+            runs["main"],
+            first,
+            "derived: the first query re-executed",
+        )
+    for name, run in sorted(runs.items()):
+        if name in {"main", "fake"} or "items" not in run or not run["config"].get("subset"):
+            continue
+        records = [r for r in run["items"] if r["id"] in subset]
+        label = labels.get(name) or f"Model: {str(run['config'].get('model', name)).split('/', 1)[-1]}"
+        add(name, label, run, records, "no answer step")
+    out = {"subset_size": len(subset), "rows": rows}
+    (settings.results_dir / "comparison.json").write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
+    table = Table("configuration", "accuracy", "valid SQL", "calls", "p50 ms")
+    for row in rows:
+        table.add_row(
+            row["label"],
+            f"{row['accuracy']}% ({row['correct']}/{row['total']})",
+            str(row["valid_sql"]),
+            str(row["calls_mean"]),
+            str(row["latency_p50"]),
+        )
+    console.print(table)
 
 
 @eval_app.command("ledger")

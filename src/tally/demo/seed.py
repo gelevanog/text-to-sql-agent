@@ -112,5 +112,5 @@ def seed(
     for table in tables.rows:
         conn.execute(sql.SQL("ANALYZE {}").format(sql.Identifier(schema, table)))
     report = SeedReport(tables.counts(), round(time.monotonic() - started, 2))
-    log.info("seed.done", rows=report.total_rows, seconds=report.seconds)
+    log.info("seed.done", total_rows=report.total_rows, seconds=report.seconds)
     return report
