@@ -1,0 +1,65 @@
+[project]
+name = "tally"
+version = "0.1.0"
+description = "Tally: ask your database questions in plain English and get checked SQL, a chart and an answer. A text-to-SQL analytics agent with a semantic layer, sqlglot validation, a read-only execution guard, self-correction, clarifying questions and a deterministic chart recommender."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Ivan Savchenko" }]
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=1.0",
+    "fastapi",
+    "httpx",
+    "psycopg[binary]",
+    "psycopg-pool",
+    "pydantic",
+    "pydantic-settings",
+    "pyyaml",
+    "rich",
+    "sqlglot",
+    "structlog",
+    "typer",
+    "uvicorn[standard]",
+]
+
+[dependency-groups]
+dev = ["hypothesis", "mypy", "pytest", "ruff", "types-pyyaml"]
+
+[project.scripts]
+tally = "tally.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tally"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "db: needs PostgreSQL (TEST_DATABASE_URL); skipped otherwise unless REQUIRE_TEST_DB=1",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RUF", "PTH", "N", "C4", "PIE", "RET", "TC", "S608"]
+ignore = ["TC001", "TC002", "TC003", "RUF001", "RUF002", "RUF003", "SIM905"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S608"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query", "typer.Option", "typer.Argument"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+packages = ["tally"]
