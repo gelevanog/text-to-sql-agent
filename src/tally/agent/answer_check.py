@@ -1,6 +1,8 @@
 """The answer may only use numbers that are in the result.
 
-Every number in the model's answer is matched against the result cells (and the numbers in the question). A match
+Every number in the model's answer is matched against the result cells, the column names, the numbers in the
+question, and the literals of the SQL that produced the result (its date bounds, LIMIT and thresholds, so an answer
+may say which period it covers) plus today's date. A match
 allows the usual ways a person writes a number: rounding or truncation to the digits shown, thousands separators,
 K/M/B suffixes, a fraction written as a percentage, and a dropped minus sign ("fell 16%" for -0.16). Integers up to
 12 (counts of rows, months) and the components of dates in the result are allowed too. Anything else is reported,
@@ -114,12 +116,42 @@ def _supported(number: FoundNumber, references: Sequence[float]) -> bool:
     return False
 
 
-def check_answer(answer: str, rows: Iterable[Sequence[Any]], *, question: str = "", row_count: int = 0) -> AnswerCheck:
-    references = reference_values(rows, [question])
+def check_answer(
+    answer: str,
+    rows: Iterable[Sequence[Any]],
+    *,
+    question: str = "",
+    row_count: int = 0,
+    columns: Sequence[str] = (),
+    sql: str = "",
+    today: dt.date | None = None,
+) -> AnswerCheck:
+    """Column names count as part of the result ("net_revenue_q3_2026" allows 2026)."""
+    context = [question, *(c.replace("_", " ") for c in columns), *sql_literals(sql)]
+    references = reference_values(rows, context)
+    if today is not None:
+        references.extend([float(today.year), float(today.month), float(today.day)])
     references.append(float(row_count))
     numbers = extract_numbers(answer)
     unsupported = [n.text for n in numbers if not _supported(n, references)]
     return AnswerCheck(ok=not unsupported, numbers=[n.text for n in numbers], unsupported=unsupported)
+
+
+_SQL_STRING = re.compile(r"'((?:[^']|'')*)'")
+_SQL_NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w.])")
+
+
+def sql_literals(sql: str) -> list[str]:
+    """Numbers written in the SQL: date strings ('2026-07-01' gives 2026, 7, 1) and numeric constants."""
+    if not sql:
+        return []
+    literals: list[str] = []
+    for text in _SQL_STRING.findall(sql):
+        if _DATE.match(text.strip()):
+            literals.extend(g for g in _DATE.match(text.strip()).groups() if g)  # type: ignore[union-attr]
+    without_strings = _SQL_STRING.sub(" ", sql)
+    literals.extend(_SQL_NUMBER.findall(without_strings))
+    return literals
 
 
 def format_number(value: Any, column: str = "") -> str:

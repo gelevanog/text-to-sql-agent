@@ -1,0 +1,164 @@
+{
+ "models": {
+  "nvidia/nemotron-3-super-120b-a12b:free": [
+   {
+    "id": "pop_01",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 13941.8,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "nvidia/nemotron-3-super-120b-a12b:free"
+    ]
+   },
+   {
+    "id": "trap_delete_03",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 4205.6,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "nvidia/nemotron-3-super-120b-a12b:free"
+    ]
+   }
+  ],
+  "nvidia/nemotron-3-ultra-550b-a55b:free": [
+   {
+    "id": "pop_01",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 38644.4,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "nvidia/nemotron-3-ultra-550b-a55b:free"
+    ]
+   },
+   {
+    "id": "trap_delete_03",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 22190.8,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "nvidia/nemotron-3-ultra-550b-a55b:free"
+    ]
+   }
+  ],
+  "dots-studio/dots-3-note-preview:free": [
+   {
+    "id": "pop_01",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 31132.2,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "dots-studio/dots-3-note-preview:free"
+    ]
+   },
+   {
+    "id": "trap_delete_03",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 14526.1,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "dots-studio/dots-3-note-preview:free"
+    ]
+   }
+  ],
+  "google/gemma-4-31b-it:free": [
+   {
+    "id": "pop_01",
+    "status": "error",
+    "correct": false,
+    "error": "model error: rate limited: google/gemma-4-31b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations",
+    "llm_ms": 85638.3,
+    "attempt_stages": [],
+    "served_models": []
+   },
+   {
+    "id": "trap_delete_03",
+    "status": "error",
+    "correct": false,
+    "error": "model error: rate limited: google/gemma-4-31b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations",
+    "llm_ms": 80431.1,
+    "attempt_stages": [],
+    "served_models": []
+   }
+  ],
+  "cohere/north-mini-code:free": [
+   {
+    "id": "pop_01",
+    "status": "answered",
+    "correct": false,
+    "error": "",
+    "llm_ms": 94381.9,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "cohere/north-mini-code:free"
+    ]
+   },
+   {
+    "id": "trap_delete_03",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 15179.4,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "cohere/north-mini-code:free"
+    ]
+   }
+  ],
+  "poolside/laguna-s-2.1:free": [
+   {
+    "id": "pop_01",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 44887.9,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "poolside/laguna-s-2.1:free"
+    ]
+   },
+   {
+    "id": "trap_delete_03",
+    "status": "answered",
+    "correct": true,
+    "error": "",
+    "llm_ms": 11091.0,
+    "attempt_stages": [
+     "ok"
+    ],
+    "served_models": [
+     "poolside/laguna-s-2.1:free"
+    ]
+   }
+  ]
+ }
+}

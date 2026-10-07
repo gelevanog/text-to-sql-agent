@@ -476,7 +476,8 @@ class Generator:
         )[0]
         local = dt.datetime.combine(day, dt.time(local_hour, self.rng.randint(0, 59), self.rng.randint(0, 59)))
         stamp = (local - dt.timedelta(hours=self.region_tz_offset[region_id])).replace(tzinfo=UTC)
-        return min(stamp, dt.datetime.combine(END, dt.time(23, 59, 59), UTC))
+        first = dt.datetime.combine(START, dt.time(0, 0), UTC)
+        return max(first, min(stamp, dt.datetime.combine(END, dt.time(23, 59, 59), UTC)))
 
     def pick_customer(self, region_id: int, ordered_at: dt.datetime) -> Customer:
         pool = self.customers_by_region[region_id]
@@ -946,6 +947,7 @@ class Generator:
         order_region = {row[0]: row[2] for row in self.t.rows["orders"]}
         sub_region = {row[0]: row[2] for row in self.t.rows["subscriptions"]}
         invoice_region = {row[0]: sub_region[row[1]] for row in self.t.rows["invoices"]}
+
         def region(table: str, row: tuple[Any, ...]) -> Any:
             if table == "invoices":
                 return sub_region[row[1]]

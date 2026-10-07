@@ -5,7 +5,7 @@ Rules (documented in the README):
 * Every gold column must appear among the predicted columns (matched by values, in any position, under any name);
   extra predicted columns are allowed (e.g. a difference column the gold query does not compute).
 * Numbers match when equal within 1e-6 relative, when the prediction is the gold value rounded to the prediction's
-  decimals, or within 0.01% relative (rounding inside sums). A whole column may be in percent instead of a fraction.
+  decimals, or within 0.001% relative (rounding inside sums). A whole column may be in percent instead of a fraction.
 * Timestamps at midnight compare equal to dates, and 'YYYY-MM' / 'YYYY-MM-DD' / 'YYYY-Qn' strings to the dates they
   name. Strings compare after trimming, case-insensitively.
 * When the shapes differ and the gold result is a single row, the result also matches if every gold number appears
@@ -92,7 +92,7 @@ def numbers_equal(gold: float, pred: Num, scale: float = 1.0) -> bool:
         return True
     if pred.decimals is not None and pred.decimals <= 6 and diff <= 0.5 * 10.0**-pred.decimals + 1e-9:
         return True
-    return diff <= 1e-4 * abs(target)
+    return diff <= 1e-5 * abs(target)
 
 
 def values_equal(gold: Any, pred: Any, scale: float = 1.0) -> bool:

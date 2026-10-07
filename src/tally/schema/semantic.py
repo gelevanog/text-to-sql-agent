@@ -70,7 +70,10 @@ class Ambiguity(_Strict):
     @model_validator(mode="after")
     def _check(self) -> Ambiguity:
         for pattern in [*self.triggers, *self.resolved_by]:
-            re.compile(pattern)
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                raise ValueError(f"ambiguity {self.id}: invalid pattern {pattern!r}: {exc}") from exc
         if self.default not in {o.value for o in self.options}:
             raise ValueError(f"ambiguity {self.id}: default {self.default!r} is not one of its options")
         return self
@@ -145,7 +148,8 @@ class SemanticLayer(_Strict):
         found: list[str] = []
         for canonical, words in self.synonyms.items():
             for word in [canonical, *words]:
-                if re.search(rf"(?<![a-z0-9]){re.escape(word.lower())}(?![a-z0-9])", lowered):
+                stem = re.escape(word.lower().removesuffix("s"))
+                if re.search(rf"(?<![a-z0-9]){stem}s?(?![a-z0-9])", lowered):
                     found.append(canonical)
                     break
         return found

@@ -1,0 +1,2385 @@
+{
+ "tables": [
+  {
+   "name": "campaigns",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "APAC Launch 2024",
+      "APAC Smart Home 2026",
+      "Back to Work Desk 2024",
+      "Back to Work Desk 2025",
+      "Back to Work Desk 2026",
+      "Black Friday 2024",
+      "Black Friday 2025",
+      "Holiday Lights 2024",
+      "Holiday Lights 2025",
+      "LATAM Creators 2025",
+      "New Year Glow 2024",
+      "New Year Glow 2025",
+      "New Year Glow 2026",
+      "Outdoor Season 2024",
+      "Outdoor Season 2025",
+      "Outdoor Season 2026",
+      "Spring Glow 2026",
+      "Summer Social Blitz 2025",
+      "UK Spring Refresh 2025"
+     ]
+    },
+    {
+     "name": "channel_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "marketing_channels.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": true,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "start_date",
+     "type": "date",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "end_date",
+     "type": "date",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "budget_usd",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "Total campaign spend in USD.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 19,
+   "description": "Marketing campaigns with dates and budget. region_id NULL means the campaign ran in every region.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "categories",
+   "columns": [
+    {
+     "name": "id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "Accessories",
+      "Batteries",
+      "Cables & Adapters",
+      "Hubs & Bridges",
+      "Lamps",
+      "Light Strips",
+      "Lighting",
+      "Mounts",
+      "Outdoor Lighting",
+      "Sensors",
+      "Smart Bulbs",
+      "Smart Home",
+      "Smart Plugs"
+     ]
+    },
+    {
+     "name": "parent_id",
+     "type": "smallint",
+     "nullable": true,
+     "primary_key": false,
+     "references": "categories.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 13,
+   "description": "Product categories in two levels (parent_id NULL for Lighting, Smart Home, Accessories).",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "countries",
+   "columns": [
+    {
+     "name": "code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "Australia",
+      "Brazil",
+      "Canada",
+      "France",
+      "Germany",
+      "Italy",
+      "Japan",
+      "Mexico",
+      "Netherlands",
+      "Singapore",
+      "Spain",
+      "United Kingdom",
+      "United States"
+     ]
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "currency_code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": false,
+     "references": "currencies.code",
+     "description": "",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 13,
+   "description": "Countries Lumora sells to, with their region and currency.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "currencies",
+   "columns": [
+    {
+     "name": "code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "Australian dollar",
+      "Brazilian real",
+      "Canadian dollar",
+      "Euro",
+      "Japanese yen",
+      "Mexican peso",
+      "Pound sterling",
+      "Singapore dollar",
+      "US dollar"
+     ]
+    },
+    {
+     "name": "decimals",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "2",
+      "0"
+     ]
+    }
+   ],
+   "row_count": 9,
+   "description": "Currencies orders can be paid in.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "customers",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "email",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": true,
+     "samples": []
+    },
+    {
+     "name": "phone",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": true,
+     "samples": []
+    },
+    {
+     "name": "street_address",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": true,
+     "samples": []
+    },
+    {
+     "name": "city",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "country_code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": false,
+     "references": "countries.code",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "Region of the customer's country.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "segment",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "consumer",
+      "business"
+     ]
+    },
+    {
+     "name": "signup_at",
+     "type": "timestamp with time zone",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "acquisition_channel_id",
+     "type": "smallint",
+     "nullable": true,
+     "primary_key": false,
+     "references": "marketing_channels.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "marketing_opt_in",
+     "type": "boolean",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "true",
+      "false"
+     ]
+    },
+    {
+     "name": "is_test_account",
+     "type": "boolean",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "QA accounts with large fake orders - always exclude from business metrics.",
+     "pii": false,
+     "samples": [
+      "false",
+      "true"
+     ]
+    },
+    {
+     "name": "deleted_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Account closed (soft delete); NULL for live accounts.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 15670,
+   "description": "Customer accounts. Exclude is_test_account and deleted_at IS NOT NULL when counting customers.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "fx_rates",
+   "columns": [
+    {
+     "name": "currency_code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": true,
+     "references": "currencies.code",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "rate_date",
+     "type": "date",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "The day the rate applies to (every calendar day is present).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "usd_per_unit",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "Multiply a local amount by this to get USD.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 9036,
+   "description": "Daily exchange rates. usd_per_unit converts one unit of the currency into US dollars (USD has rate 1).",
+   "synonyms": [
+    "exchange rates",
+    "currency conversion"
+   ],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "invoices",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "subscription_id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": false,
+     "references": "subscriptions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "issued_at",
+     "type": "timestamp with time zone",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "period_start",
+     "type": "date",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "period_end",
+     "type": "date",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "amount",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "currency_code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": false,
+     "references": "currencies.code",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "status",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "paid",
+      "void",
+      "open"
+     ]
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 30080,
+   "description": "Subscription invoices in the subscription currency. Only status 'paid' is revenue.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "marketing_channels",
+   "columns": [
+    {
+     "name": "id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "Affiliate",
+      "Direct",
+      "Email",
+      "Organic Search",
+      "Paid Search",
+      "Social"
+     ]
+    },
+    {
+     "name": "is_paid",
+     "type": "boolean",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "false",
+      "true"
+     ]
+    }
+   ],
+   "row_count": 6,
+   "description": "Marketing channels for order attribution and customer acquisition.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "order_items",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": false,
+     "references": "orders.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "product_id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": false,
+     "references": "products.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "quantity",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "unit_price",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "discount_amount",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 64411,
+   "description": "Order lines. Line amount = quantity * unit_price - discount_amount, in the order currency.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "orders",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "customer_id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": false,
+     "references": "customers.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "country_code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": false,
+     "references": "countries.code",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "ordered_at",
+     "type": "timestamp with time zone",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "timestamptz in UTC.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "status",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "placed, shipped, delivered, cancelled or returned.",
+     "pii": false,
+     "samples": [
+      "delivered",
+      "cancelled",
+      "returned",
+      "shipped",
+      "placed"
+     ]
+    },
+    {
+     "name": "currency_code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": false,
+     "references": "currencies.code",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "channel_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "marketing_channels.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "campaign_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": "campaigns.id",
+     "description": "Attributed campaign or NULL.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "shipping_fee",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "Shipping charged in the order currency (not revenue).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "deleted_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Soft-deleted duplicates or voided orders - exclude.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 38455,
+   "description": "One row per checkout. Amounts are in the order's currency. Exclude status 'cancelled' and deleted_at IS NOT NULL.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "payments",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": "orders.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "invoice_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": "invoices.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "paid_at",
+     "type": "timestamp with time zone",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "amount",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "currency_code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": false,
+     "references": "currencies.code",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "method",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "card",
+      "paypal",
+      "apple_pay",
+      "bank_transfer"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "succeeded",
+      "failed"
+     ]
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 68739,
+   "description": "Payment attempts for orders (order_id) or invoices (invoice_id), in the payment currency. Failed attempts are kept; only status 'succeeded' is money received.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "plan_price_history",
+   "columns": [
+    {
+     "name": "plan_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": true,
+     "references": "plans.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "valid_from",
+     "type": "date",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "price_usd",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 6,
+   "description": "Plan prices over time (Care Plus monthly went from 8.99 to 9.99 USD on 2025-09-01).",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "plans",
+   "columns": [
+    {
+     "name": "id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "Care Plus",
+      "Care Pro",
+      "Care Basic"
+     ]
+    },
+    {
+     "name": "billing_period",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "monthly",
+      "annual"
+     ]
+    },
+    {
+     "name": "price_usd",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "is_business",
+     "type": "boolean",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "false",
+      "true"
+     ]
+    }
+   ],
+   "row_count": 5,
+   "description": "Lumora Care subscription plans with their current price.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "products",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "sku",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "category_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "categories.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "list_price_usd",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "unit_cost_usd",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "launched_on",
+     "type": "date",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "First day the product was sold.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "discontinued_on",
+     "type": "date",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Last day the product was sold; NULL if still sold.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 54,
+   "description": "Product catalog with list price and unit cost in USD.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "refunds",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": false,
+     "references": "orders.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_item_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": "order_items.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "refunded_at",
+     "type": "timestamp with time zone",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "amount",
+     "type": "numeric",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "reason",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "returned, changed_mind, not_as_described, defective, damaged_in_transit or goodwill.",
+     "pii": false,
+     "samples": [
+      "returned",
+      "defective",
+      "not_as_described",
+      "changed_mind",
+      "goodwill",
+      "damaged_in_transit"
+     ]
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 4034,
+   "description": "Refunds in the order currency. order_item_id is NULL for goodwill refunds not tied to a product.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "regions",
+   "columns": [
+    {
+     "name": "id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "code",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "Region code - NA, EU, UK, APAC, LATAM.",
+     "pii": false,
+     "samples": [
+      "APAC",
+      "EU",
+      "LATAM",
+      "NA",
+      "UK"
+     ]
+    },
+    {
+     "name": "name",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "Asia Pacific",
+      "Europe",
+      "Latin America",
+      "North America",
+      "United Kingdom"
+     ]
+    },
+    {
+     "name": "timezone",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "IANA time zone for local-time questions.",
+     "pii": false,
+     "samples": [
+      "America/New_York",
+      "America/Sao_Paulo",
+      "Asia/Tokyo",
+      "Europe/Berlin",
+      "Europe/London"
+     ]
+    }
+   ],
+   "row_count": 5,
+   "description": "The five sales regions, each with a reporting time zone.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "subscriptions",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "customer_id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": false,
+     "references": "customers.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "plan_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "plans.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "started_at",
+     "type": "timestamp with time zone",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "cancelled_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "status",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "active",
+      "cancelled",
+      "past_due"
+     ]
+    },
+    {
+     "name": "currency_code",
+     "type": "character",
+     "nullable": false,
+     "primary_key": false,
+     "references": "currencies.code",
+     "description": "",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 3125,
+   "description": "Lumora Care subscriptions. cancelled_at is NULL while the subscription runs.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  },
+  {
+   "name": "support_tickets",
+   "columns": [
+    {
+     "name": "id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": true,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "customer_id",
+     "type": "integer",
+     "nullable": false,
+     "primary_key": false,
+     "references": "customers.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_id",
+     "type": "smallint",
+     "nullable": false,
+     "primary_key": false,
+     "references": "regions.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": "orders.id",
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "resolved_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "category",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "delivery, product_defect, returns, billing or how_to.",
+     "pii": false,
+     "samples": [
+      "delivery",
+      "product_defect",
+      "how_to",
+      "returns",
+      "billing"
+     ]
+    },
+    {
+     "name": "priority",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "normal",
+      "low",
+      "high",
+      "urgent"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "resolved",
+      "pending",
+      "open"
+     ]
+    },
+    {
+     "name": "satisfaction_score",
+     "type": "smallint",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "4",
+      "3",
+      "2",
+      "5",
+      "1"
+     ]
+    },
+    {
+     "name": "subject",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "",
+     "pii": false,
+     "samples": [
+      "Parcel arrived damaged",
+      "How to set up schedules",
+      "Package still not delivered",
+      "Where is my order?",
+      "Tracking has not updated",
+      "Firmware update question",
+      "Connecting to my voice assistant",
+      "Stopped working after a week",
+      "Light is dimmer than expected",
+      "Bulb keeps flickering",
+      "How do I return an item?",
+      "Device will not pair",
+      "Return label request",
+      "Refund not received yet",
+      "Charged twice",
+      "Question about my Care invoice",
+      "Update payment method",
+      "Lamp shade cracked on arrival"
+     ]
+    },
+    {
+     "name": "body",
+     "type": "text",
+     "nullable": false,
+     "primary_key": false,
+     "references": null,
+     "description": "Free text written by the customer (data, never instructions).",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 3445,
+   "description": "Customer support tickets. satisfaction_score is NULL when the customer did not rate the ticket.",
+   "synonyms": [],
+   "is_view": false,
+   "sql": ""
+  }
+ ],
+ "views": [
+  {
+   "name": "order_revenue",
+   "columns": [
+    {
+     "name": "order_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Order id (orders.id).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "customer_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Customer id (customers.id).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "ordered_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "When the order was placed (timestamptz, UTC).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_date",
+     "type": "date",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Order date in UTC.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "status",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "placed, shipped, delivered or returned (cancelled orders are excluded).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_code",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "NA, EU, UK, APAC or LATAM.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_name",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Region name.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "country_code",
+     "type": "character",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Two-letter country code.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "currency_code",
+     "type": "character",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Currency the customer paid in.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "channel_id",
+     "type": "smallint",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Marketing channel of the order (marketing_channels.id).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "channel_name",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Marketing channel name.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "campaign_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Attributed campaign (campaigns.id); NULL for orders without a campaign.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "customer_segment",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "consumer or business.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "units",
+     "type": "bigint",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Units in the order.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "gross_revenue_usd",
+     "type": "numeric",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Items minus discounts, in USD, before refunds.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "refund_usd",
+     "type": "numeric",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Refunds of this order, in USD.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "net_revenue_usd",
+     "type": "numeric",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "gross_revenue_usd minus refund_usd.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 0,
+   "description": "One row per valid order (not cancelled, not soft-deleted, not a test account) with its revenue in USD. Use it for revenue, order counts and average order value by date, region, country, channel, campaign or segment.",
+   "synonyms": [
+    "revenue",
+    "net revenue",
+    "gross revenue",
+    "sales",
+    "aov",
+    "order value",
+    "orders"
+   ],
+   "is_view": true,
+   "sql": "SELECT o.id AS order_id, o.customer_id, o.ordered_at, CAST(o.ordered_at AT TIME ZONE 'UTC' AS DATE) AS order_date,\n       o.status, rg.code AS region_code, rg.name AS region_name, o.country_code, o.currency_code,\n       o.channel_id, ch.name AS channel_name, o.campaign_id, c.segment AS customer_segment, li.units,\n       li.items_amount * fx.usd_per_unit AS gross_revenue_usd,\n       COALESCE(rf.refund_amount, 0) * fx.usd_per_unit AS refund_usd,\n       (li.items_amount - COALESCE(rf.refund_amount, 0)) * fx.usd_per_unit AS net_revenue_usd\nFROM orders o\nJOIN customers c ON c.id = o.customer_id\nJOIN regions rg ON rg.id = o.region_id\nJOIN marketing_channels ch ON ch.id = o.channel_id\nJOIN fx_rates fx ON fx.currency_code = o.currency_code AND fx.rate_date = CAST(o.ordered_at AT TIME ZONE 'UTC' AS DATE)\nJOIN (SELECT order_id, SUM(quantity * unit_price - discount_amount) AS items_amount, SUM(quantity) AS units\n      FROM order_items GROUP BY order_id) li ON li.order_id = o.id\nLEFT JOIN (SELECT order_id, SUM(amount) AS refund_amount FROM refunds GROUP BY order_id) rf ON rf.order_id = o.id\nWHERE o.status <> 'cancelled' AND o.deleted_at IS NULL AND NOT c.is_test_account"
+  },
+  {
+   "name": "order_line_revenue",
+   "columns": [
+    {
+     "name": "order_item_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Order line id (order_items.id).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Order id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "customer_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Customer id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "ordered_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "When the order was placed (timestamptz, UTC).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_date",
+     "type": "date",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Order date in UTC.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_code",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "NA, EU, UK, APAC or LATAM.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "country_code",
+     "type": "character",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Two-letter country code.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "channel_id",
+     "type": "smallint",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Marketing channel id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "campaign_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Attributed campaign id or NULL.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "product_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Product id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "product_name",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Product name.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "category_id",
+     "type": "smallint",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Category id (the leaf category).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "category_name",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Leaf category, e.g. Smart Bulbs.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "parent_category_name",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Top-level category - Lighting, Smart Home or Accessories.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "units",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Quantity.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "gross_revenue_usd",
+     "type": "numeric",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Line amount minus discount, in USD.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "refund_usd",
+     "type": "numeric",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Refunds of this line, in USD.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "net_revenue_usd",
+     "type": "numeric",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "gross_revenue_usd minus refund_usd.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "cost_usd",
+     "type": "numeric",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Unit cost times quantity, in USD.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 0,
+   "description": "One row per order line of a valid order, with product, category and revenue in USD. Use it for product and category questions (units sold, product revenue, product refunds, margin). Goodwill refunds that are not tied to a product are not included here, so product-level net revenue sums to slightly more than order_revenue.",
+   "synonyms": [
+    "product revenue",
+    "units sold",
+    "best sellers",
+    "category revenue",
+    "margin",
+    "product refunds"
+   ],
+   "is_view": true,
+   "sql": "SELECT oi.id AS order_item_id, o.id AS order_id, o.customer_id, o.ordered_at,\n       CAST(o.ordered_at AT TIME ZONE 'UTC' AS DATE) AS order_date, rg.code AS region_code, o.country_code,\n       o.channel_id, o.campaign_id, p.id AS product_id, p.name AS product_name, cat.id AS category_id,\n       cat.name AS category_name, parent.name AS parent_category_name, oi.quantity AS units,\n       (oi.quantity * oi.unit_price - oi.discount_amount) * fx.usd_per_unit AS gross_revenue_usd,\n       COALESCE(rf.amount, 0) * fx.usd_per_unit AS refund_usd,\n       (oi.quantity * oi.unit_price - oi.discount_amount - COALESCE(rf.amount, 0)) * fx.usd_per_unit AS net_revenue_usd,\n       oi.quantity * p.unit_cost_usd AS cost_usd\nFROM order_items oi\nJOIN orders o ON o.id = oi.order_id\nJOIN customers c ON c.id = o.customer_id\nJOIN regions rg ON rg.id = o.region_id\nJOIN products p ON p.id = oi.product_id\nJOIN categories cat ON cat.id = p.category_id\nLEFT JOIN categories parent ON parent.id = cat.parent_id\nJOIN fx_rates fx ON fx.currency_code = o.currency_code AND fx.rate_date = CAST(o.ordered_at AT TIME ZONE 'UTC' AS DATE)\nLEFT JOIN (SELECT order_item_id, SUM(amount) AS amount FROM refunds WHERE order_item_id IS NOT NULL\n           GROUP BY order_item_id) rf ON rf.order_item_id = oi.id\nWHERE o.status <> 'cancelled' AND o.deleted_at IS NULL AND NOT c.is_test_account"
+  },
+  {
+   "name": "customer_profile",
+   "columns": [
+    {
+     "name": "customer_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Customer id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "customer_name",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Customer display name.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "city",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "City.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "country_code",
+     "type": "character",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Two-letter country code.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_code",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "NA, EU, UK, APAC or LATAM.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "segment",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "consumer or business.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "signup_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Account creation time (timestamptz, UTC).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "signup_date",
+     "type": "date",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Signup date in UTC.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "acquisition_channel",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Channel that acquired the customer, or NULL when unknown.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "marketing_opt_in",
+     "type": "boolean",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Whether the customer accepts marketing email.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "first_order_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "First valid order (NULL if the customer never ordered).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "last_order_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Most recent valid order.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "order_count",
+     "type": "bigint",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Number of valid orders.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 0,
+   "description": "One row per real customer (soft-deleted customers and test accounts excluded) with region, segment, signup and first and last valid order. Use it for customer counts, new customers, cohorts and retention.",
+   "synonyms": [
+    "customers",
+    "clients",
+    "new customers",
+    "cohort",
+    "retention",
+    "signups",
+    "first order"
+   ],
+   "is_view": true,
+   "sql": "SELECT c.id AS customer_id, c.name AS customer_name, c.city, c.country_code, rg.code AS region_code, c.segment,\n       c.signup_at, CAST(c.signup_at AT TIME ZONE 'UTC' AS DATE) AS signup_date, ch.name AS acquisition_channel,\n       c.marketing_opt_in, fo.first_order_at, fo.last_order_at, COALESCE(fo.order_count, 0) AS order_count\nFROM customers c\nJOIN regions rg ON rg.id = c.region_id\nLEFT JOIN marketing_channels ch ON ch.id = c.acquisition_channel_id\nLEFT JOIN (SELECT customer_id, MIN(ordered_at) AS first_order_at, MAX(ordered_at) AS last_order_at,\n                  COUNT(*) AS order_count\n           FROM orders WHERE status <> 'cancelled' AND deleted_at IS NULL GROUP BY customer_id) fo\n       ON fo.customer_id = c.id\nWHERE c.deleted_at IS NULL AND NOT c.is_test_account"
+  },
+  {
+   "name": "subscription_revenue",
+   "columns": [
+    {
+     "name": "invoice_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Invoice id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "subscription_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Subscription id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "customer_id",
+     "type": "integer",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Customer id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "region_code",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "NA, EU, UK, APAC or LATAM.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "plan_id",
+     "type": "smallint",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Plan id.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "plan_name",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Care Basic, Care Plus or Care Pro.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "billing_period",
+     "type": "text",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "monthly or annual.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "issued_at",
+     "type": "timestamp with time zone",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Invoice time (timestamptz, UTC).",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "period_start",
+     "type": "date",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "First day the invoice covers.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "period_end",
+     "type": "date",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Last day the invoice covers.",
+     "pii": false,
+     "samples": []
+    },
+    {
+     "name": "amount_usd",
+     "type": "numeric",
+     "nullable": true,
+     "primary_key": false,
+     "references": null,
+     "description": "Invoice amount in USD.",
+     "pii": false,
+     "samples": []
+    }
+   ],
+   "row_count": 0,
+   "description": "One row per paid Lumora Care invoice with the plan and the amount in USD (converted on the invoice's period start date). Use it for subscription revenue by month, plan or region. Test accounts are excluded.",
+   "synonyms": [
+    "subscription revenue",
+    "care revenue",
+    "recurring revenue",
+    "invoices",
+    "billing"
+   ],
+   "is_view": true,
+   "sql": "SELECT i.id AS invoice_id, i.subscription_id, s.customer_id, rg.code AS region_code, p.id AS plan_id,\n       p.name AS plan_name, p.billing_period, i.issued_at, i.period_start, i.period_end,\n       i.amount * fx.usd_per_unit AS amount_usd\nFROM invoices i\nJOIN subscriptions s ON s.id = i.subscription_id\nJOIN customers c ON c.id = s.customer_id\nJOIN plans p ON p.id = s.plan_id\nJOIN regions rg ON rg.id = s.region_id\nJOIN fx_rates fx ON fx.currency_code = i.currency_code AND fx.rate_date = i.period_start\nWHERE i.status = 'paid' AND NOT c.is_test_account"
+  }
+ ],
+ "joins": [
+  [
+   "campaigns.channel_id",
+   "marketing_channels.id"
+  ],
+  [
+   "campaigns.region_id",
+   "regions.id"
+  ],
+  [
+   "categories.parent_id",
+   "categories.id"
+  ],
+  [
+   "countries.currency_code",
+   "currencies.code"
+  ],
+  [
+   "countries.region_id",
+   "regions.id"
+  ],
+  [
+   "customers.acquisition_channel_id",
+   "marketing_channels.id"
+  ],
+  [
+   "customers.country_code",
+   "countries.code"
+  ],
+  [
+   "customers.region_id",
+   "regions.id"
+  ],
+  [
+   "fx_rates.currency_code",
+   "currencies.code"
+  ],
+  [
+   "invoices.currency_code",
+   "currencies.code"
+  ],
+  [
+   "invoices.region_id",
+   "regions.id"
+  ],
+  [
+   "invoices.subscription_id",
+   "subscriptions.id"
+  ],
+  [
+   "order_items.order_id",
+   "orders.id"
+  ],
+  [
+   "order_items.product_id",
+   "products.id"
+  ],
+  [
+   "order_items.region_id",
+   "regions.id"
+  ],
+  [
+   "orders.campaign_id",
+   "campaigns.id"
+  ],
+  [
+   "orders.channel_id",
+   "marketing_channels.id"
+  ],
+  [
+   "orders.country_code",
+   "countries.code"
+  ],
+  [
+   "orders.currency_code",
+   "currencies.code"
+  ],
+  [
+   "orders.customer_id",
+   "customers.id"
+  ],
+  [
+   "orders.region_id",
+   "regions.id"
+  ],
+  [
+   "payments.currency_code",
+   "currencies.code"
+  ],
+  [
+   "payments.invoice_id",
+   "invoices.id"
+  ],
+  [
+   "payments.order_id",
+   "orders.id"
+  ],
+  [
+   "payments.region_id",
+   "regions.id"
+  ],
+  [
+   "plan_price_history.plan_id",
+   "plans.id"
+  ],
+  [
+   "products.category_id",
+   "categories.id"
+  ],
+  [
+   "refunds.order_id",
+   "orders.id"
+  ],
+  [
+   "refunds.order_item_id",
+   "order_items.id"
+  ],
+  [
+   "refunds.region_id",
+   "regions.id"
+  ],
+  [
+   "subscriptions.currency_code",
+   "currencies.code"
+  ],
+  [
+   "subscriptions.customer_id",
+   "customers.id"
+  ],
+  [
+   "subscriptions.plan_id",
+   "plans.id"
+  ],
+  [
+   "subscriptions.region_id",
+   "regions.id"
+  ],
+  [
+   "support_tickets.customer_id",
+   "customers.id"
+  ],
+  [
+   "support_tickets.order_id",
+   "orders.id"
+  ],
+  [
+   "support_tickets.region_id",
+   "regions.id"
+  ]
+ ]
+}

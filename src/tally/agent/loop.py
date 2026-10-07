@@ -493,7 +493,15 @@ class Agent:
                 answer, check = "", None
                 sink.step("answer", "The model could not write the answer", {"error": str(exc)[:200]})
                 break
-            check = check_answer(answer, rows, question=result.question, row_count=result.row_count)
+            check = check_answer(
+                answer,
+                rows,
+                question=result.question,
+                row_count=result.row_count,
+                columns=result.columns,
+                sql=result.sql,
+                today=self.config.today,
+            )
             if check.ok:
                 result.answer_source = "model" if attempt == 0 else "model_retry"
                 break
@@ -503,7 +511,15 @@ class Agent:
             first_check = check
             answer = template_answer(result.columns, rows, result.row_count, result.truncated)
             result.answer_source = "template"
-            check = check_answer(answer, rows, question=result.question, row_count=result.row_count)
+            check = check_answer(
+                answer,
+                rows,
+                question=result.question,
+                row_count=result.row_count,
+                columns=result.columns,
+                sql=result.sql,
+                today=self.config.today,
+            )
             if first_check is not None:
                 check.unsupported = first_check.unsupported
         result.answer = answer
