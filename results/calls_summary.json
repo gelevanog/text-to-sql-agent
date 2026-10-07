@@ -1,0 +1,51 @@
+{
+ "total_requests": 491,
+ "by_status": {
+  "ok": 405,
+  "retryable_error": 70,
+  "error": 16
+ },
+ "by_tag": {
+  "smoke": 21,
+  "eval": 461,
+  "api": 9
+ },
+ "by_tag_detail": {
+  "smoke:nvidia/nemotron-3-super-120b-a12b:free": 2,
+  "smoke:nvidia/nemotron-3-ultra-550b-a55b:free": 2,
+  "smoke:dots-studio/dots-3-note-preview:free": 2,
+  "smoke:google/gemma-4-31b-it:free": 10,
+  "smoke:cohere/north-mini-code:free": 2,
+  "smoke:poolside/laguna-s-2.1:free": 3,
+  "eval:main": 208,
+  "eval:main_rerun": 14,
+  "eval:subset_full": 31,
+  "eval:subset_full:policy_fallback": 1,
+  "eval:ablation_full_schema": 39,
+  "eval:ablation_full_schema:policy_fallback": 1,
+  "eval:ablation_no_semantic_layer": 44,
+  "eval:model_dots_3": 47,
+  "eval:model_laguna_s_2_1": 76,
+  "api": 9
+ },
+ "requested_models": [
+  "cohere/north-mini-code:free",
+  "dots-studio/dots-3-note-preview:free",
+  "google/gemma-4-31b-it:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "poolside/laguna-s-2.1:free"
+ ],
+ "served_models": {
+  "nvidia/nemotron-3-super-120b-a12b:free": 339,
+  "nvidia/nemotron-3-ultra-550b-a55b:free": 2,
+  "dots-studio/dots-3-note-preview:free": 36,
+  "cohere/north-mini-code:free": 2,
+  "poolside/laguna-s-2.1:free": 26
+ },
+ "all_model_ids_free": true,
+ "input_tokens": 925844,
+ "output_tokens": 300324,
+ "first_call": "2026-10-07T06:17:23+00:00",
+ "last_call": "2026-10-07T08:11:42+00:00"
+}
