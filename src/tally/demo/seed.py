@@ -11,7 +11,7 @@ from psycopg import sql
 
 from tally.demo.generator import generate
 from tally.logging_config import get_logger
-from tally.security import enable_region_scope, setup_reader
+from tally.security import disable_region_scope, enable_region_scope, setup_reader
 
 log = get_logger(__name__)
 
@@ -59,11 +59,13 @@ def seed(
     schema: str = "public",
     reader_role: str = "tally_reader",
     reader_password: str = "tally_reader",
+    scoped_role: str = "tally_scoped_reader",
     statement_timeout_ms: int = 10_000,
     app_schema: str = "tally",
     seed_value: int = 42,
     scale: float = 1.0,
     reset: bool = True,
+    rls: bool = False,
 ) -> SeedReport:
     started = time.monotonic()
     tables = generate(seed_value, scale)
@@ -97,7 +99,10 @@ def seed(
             pii_columns=DEMO_PII_COLUMNS,
             statement_timeout_ms=statement_timeout_ms,
         )
-        enable_region_scope(conn, schema=schema, role=reader_role)
+        if rls:
+            enable_region_scope(conn, schema=schema, role=reader_role, scoped_role=scoped_role)
+        else:
+            disable_region_scope(conn, schema=schema)
         conn.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(app_schema)))
         conn.execute(
             sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(sql.Identifier(app_schema), sql.Identifier(reader_role))

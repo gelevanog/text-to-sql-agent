@@ -44,6 +44,8 @@ from tally.sql.expand import expand_views
 from tally.sql.validator import SQLValidator, ValidationResult
 
 Emit = Callable[[str, dict[str, Any]], None]
+POLICY_CODES = frozenset({"pii_via_star"})
+"""Soft violations that still mean "blocked" once the correction budget is spent."""
 
 
 @dataclass
@@ -54,8 +56,8 @@ class AgentConfig:
     semantic_layer: bool = True
     history_turns: int = 3
     answer_retries: int = 1
-    max_plan_cost: float = 2_000_000.0
-    max_plan_rows: float = 50_000_000.0
+    max_plan_cost: float = 50_000_000.0
+    max_plan_rows: float = 5_000_000.0
     max_tokens: int = 4000
     answer_max_tokens: int = 1500
     temperature: float = 0.0
@@ -330,6 +332,13 @@ class Agent:
             empty_retry_used = empty_retry_used or empty
             last_error = feedback
             messages.append({"role": "user", "content": correction_message(feedback)})
+        last = result.attempts[-1] if result.attempts else None
+        policy = [v for v in ((last.validation or {}).get("violations", []) if last else []) if v.get("code") in
+                  POLICY_CODES]  # fmt: skip
+        if policy:
+            # The model kept asking for personal data: report it as blocked, not as a failure.
+            self._block(result, sink, "validator", [str(v["message"]) for v in policy], result.sql)
+            return None
         result.status = "error"
         result.error = f"no working query after {cfg.max_corrections + 1} attempts: {last_error}"
         sink.step("error", "Gave up after the correction budget", {"error": last_error})
@@ -389,12 +398,23 @@ class Agent:
         sink.step(
             "cost",
             "Cost check passed" if not too_costly else "Query too expensive",
-            {"total_cost": cost.total_cost, "plan_rows": cost.plan_rows, "limit": cfg.max_plan_cost},
+            {
+                "total_cost": cost.total_cost,
+                "plan_rows": cost.plan_rows,
+                "max_cost": cfg.max_plan_cost,
+                "max_rows": cfg.max_plan_rows,
+            },
             t1,
         )
         if too_costly:
             attempt.stage = "cost"
-            attempt.error = f"estimated cost {cost.total_cost:,.0f} is above the limit of {cfg.max_plan_cost:,.0f}"
+            if cost.plan_rows > cfg.max_plan_rows:
+                attempt.error = (
+                    f"a step of the plan is estimated at {cost.plan_rows:,.0f} rows, above the limit of "
+                    f"{cfg.max_plan_rows:,.0f}"
+                )
+            else:
+                attempt.error = f"estimated cost {cost.total_cost:,.0f} is above the limit of {cfg.max_plan_cost:,.0f}"
             if attempt_no >= cfg.max_corrections:
                 self._block(result, sink, "cost_guard", [attempt.error], plan.sql)
                 return None

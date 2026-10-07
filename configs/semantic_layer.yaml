@@ -22,9 +22,9 @@ reporting:
   last_data_date: "2026-09-30"
 
 rules:
-  - Money is reported in US dollars. Order, refund, payment and invoice amounts are stored in the local currency of
-    the order (currency_code); convert with fx_rates.usd_per_unit on the order date (UTC). The semantic views already
-    do this.
+  - Money is reported in US dollars. Order, refund, payment and invoice amounts are stored in a local currency
+    (currency_code); convert with fx_rates.usd_per_unit - orders and their refunds on the order date (UTC), payments
+    on the payment date, invoices on period_start. The semantic views already do this.
   - Revenue counts only valid orders - status is not 'cancelled', deleted_at IS NULL (soft-deleted duplicates), and
     the customer is not a test account (customers.is_test_account). Returned orders stay in gross revenue and are
     offset by their refunds.

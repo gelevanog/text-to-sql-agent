@@ -99,6 +99,10 @@ def build_playbook(items: list[BenchmarkItem]) -> dict[str, dict[str, Any]]:
             }
         else:
             continue
+        if "replays_original_question" in item.tags:
+            # Answering a clarification re-runs the conversation's original question with the choices applied.
+            playbook[playbook_key(conversation_chain(item, by_id)[0].question)] = reply
+            continue
         previous = by_id[item.follow_up_of].question if item.follow_up_of else None
         playbook[playbook_key(item.question, previous)] = reply
         if previous is None:

@@ -154,6 +154,8 @@ ALLOWED_FUNCTION_SAMPLES: dict[str, str] = {
     "cardinality": "cardinality(x)",
     "unnest": "unnest(x)",
     # expressions sqlglot models as functions
+    "and_or": "a AND b OR NOT c",
+    "regex_match": "x ~ 'a'",
     "case": "CASE WHEN x > 1 THEN 1 ELSE 0 END",
     "exists": "EXISTS (SELECT 1)",
     "array": "x = ANY(ARRAY[1, 2])",

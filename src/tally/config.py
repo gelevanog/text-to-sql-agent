@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     """Read-only login every generated query runs as. Empty = database_url with the reader role's credentials."""
     reader_role: str = "tally_reader"
     reader_password: str = "tally_reader"
+    scoped_reader_role: str = "tally_scoped_reader"
+    """NOLOGIN role (granted to the reader) whose row-level security policy admits only TALLY_REGION_SCOPE's rows."""
     data_schema: str = "public"
     """Schema with the business tables the agent may query."""
     app_schema: str = "tally"
@@ -64,11 +66,15 @@ class Settings(BaseSettings):
     statement_timeout_ms: int = 5000
     max_rows: int = 1000
     """Row cap: LIMIT is enforced in the SQL and rows are fetched up to this many."""
-    max_plan_cost: float = 2_000_000.0
-    """EXPLAIN total cost above which a query is refused before it runs."""
-    max_plan_rows: float = 50_000_000.0
+    max_plan_rows: float = 5_000_000.0
+    """Refuse a query when any plan node is estimated to produce more rows than this. The main cost guard: the
+    benchmark's gold queries peak at ~66k estimated rows per node, its two cross-join attacks at 346M and 4.1B."""
+    max_plan_cost: float = 50_000_000.0
+    """EXPLAIN total cost above which a query is refused (a backstop; correlated subqueries legitimately reach ~13M)."""
+    rls: bool = False
+    """Create the row-level security policies at seed time (needed for region_scope; it slows planning, see README)."""
     region_scope: str = "*"
-    """Row-level security scope: '*' = all regions, or a region code (e.g. EU) to restrict every query to it."""
+    """'*' = all regions, or a region code (e.g. EU): every query then runs under the RLS policy for that region."""
 
     # ---- agent
     clarify_policy: ClarifyPolicy = "ask"

@@ -18,6 +18,7 @@ from tally.logging_config import get_logger
 from tally.schema.catalog import Catalog, introspect, view_column_types
 from tally.schema.retrieval import EmbedFn, SchemaRetriever
 from tally.schema.semantic import EMPTY_LAYER, SemanticLayer, load_semantic_layer
+from tally.security import region_scope_enabled
 from tally.sql.executor import ReadOnlyExecutor
 from tally.sql.validator import SQLValidator
 
@@ -158,11 +159,20 @@ def build_services(
                     schema=settings.data_schema,
                     reader_role=settings.reader_role,
                     reader_password=settings.reader_password,
+                    scoped_role=settings.scoped_reader_role,
                     app_schema=settings.app_schema,
                     seed_value=settings.demo_seed,
                     scale=settings.demo_scale,
+                    rls=settings.rls,
                 )
                 log.info("seed.created", rows=report.total_rows, seconds=report.seconds)
+    if settings.region_scope != "*":
+        with db.owner() as conn:
+            if not region_scope_enabled(conn, schema=settings.data_schema):
+                raise RuntimeError(
+                    f"TALLY_REGION_SCOPE={settings.region_scope!r} needs the row-level security policies; "
+                    "re-run `tally seed` (or `tally setup-reader`) with TALLY_RLS=true"
+                )
     layer = load_layer(settings)
     catalog = build_catalog(db, settings, layer)
     if not settings.semantic_layer:
@@ -189,6 +199,7 @@ def build_services(
         region_scope=settings.region_scope,
         data_schema=settings.data_schema,
         timezone=layer.reporting.timezone,
+        scoped_role=settings.scoped_reader_role,
     )
     model = llm or budgeted(build_chat_model(settings, playbook=playbook_loader(settings)), settings, tag=tag)
     if store is None:

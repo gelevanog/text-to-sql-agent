@@ -98,7 +98,8 @@ CREATE TABLE order_items (
     product_id       integer NOT NULL REFERENCES products (id),
     quantity         integer NOT NULL CHECK (quantity > 0),
     unit_price       numeric(12, 2) NOT NULL,
-    discount_amount  numeric(12, 2) NOT NULL DEFAULT 0
+    discount_amount  numeric(12, 2) NOT NULL DEFAULT 0,
+    region_id        smallint NOT NULL REFERENCES regions (id)
 );
 
 CREATE TABLE refunds (
@@ -107,7 +108,8 @@ CREATE TABLE refunds (
     order_item_id  integer REFERENCES order_items (id),
     refunded_at    timestamptz NOT NULL,
     amount         numeric(12, 2) NOT NULL,
-    reason         text NOT NULL
+    reason         text NOT NULL,
+    region_id      smallint NOT NULL REFERENCES regions (id)
 );
 
 CREATE TABLE plans (
@@ -144,7 +146,8 @@ CREATE TABLE invoices (
     period_end      date NOT NULL,
     amount          numeric(12, 2) NOT NULL,
     currency_code   char(3) NOT NULL REFERENCES currencies (code),
-    status          text NOT NULL CHECK (status IN ('paid', 'open', 'void'))
+    status          text NOT NULL CHECK (status IN ('paid', 'open', 'void')),
+    region_id       smallint NOT NULL REFERENCES regions (id)
 );
 
 CREATE TABLE payments (
@@ -156,6 +159,7 @@ CREATE TABLE payments (
     currency_code char(3) NOT NULL REFERENCES currencies (code),
     method        text NOT NULL,
     status        text NOT NULL CHECK (status IN ('succeeded', 'failed')),
+    region_id     smallint NOT NULL REFERENCES regions (id),
     CHECK ((order_id IS NULL) <> (invoice_id IS NULL))
 );
 

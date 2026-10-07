@@ -17,7 +17,7 @@ from decimal import Decimal
 from typing import Any, Protocol
 
 import psycopg
-from psycopg import errors
+from psycopg import errors, sql
 
 from tally.db import Database
 from tally.security import SCOPE_SETTING
@@ -49,6 +49,7 @@ class QueryResult:
 class PlanCost:
     total_cost: float
     plan_rows: float
+    """The largest row estimate of any node in the plan."""
     node: str = ""
     details: dict[str, Any] = field(default_factory=dict)
 
@@ -105,6 +106,7 @@ class ReadOnlyExecutor:
         region_scope: str = "*",
         data_schema: str = "public",
         timezone: str = "UTC",
+        scoped_role: str = "tally_scoped_reader",
     ) -> None:
         self.db = db
         self.statement_timeout_ms = statement_timeout_ms
@@ -112,12 +114,15 @@ class ReadOnlyExecutor:
         self.region_scope = region_scope
         self.data_schema = data_schema
         self.timezone = timezone
+        self.scoped_role = scoped_role
 
     @contextmanager
     def _transaction(self) -> Iterator[psycopg.Cursor[Any]]:
         with self.db.reader() as conn:
             conn.execute("BEGIN READ ONLY")
             try:
+                if self.region_scope != "*":
+                    conn.execute(sql.SQL("SET LOCAL ROLE {}").format(sql.Identifier(self.scoped_role)))
                 with conn.cursor() as cur:
                     cur.execute(
                         "SELECT set_config('statement_timeout', %s, true), set_config(%s, %s, true), "
@@ -144,7 +149,7 @@ class ReadOnlyExecutor:
         plan = row[0][0]["Plan"] if row else {}
         return PlanCost(
             total_cost=float(plan.get("Total Cost", 0.0)),
-            plan_rows=float(plan.get("Plan Rows", 0.0)),
+            plan_rows=_max_rows(plan),
             node=str(plan.get("Node Type", "")),
             details={k: plan.get(k) for k in ("Node Type", "Startup Cost", "Total Cost", "Plan Rows")},
         )
@@ -180,6 +185,14 @@ class ReadOnlyExecutor:
         return QueryError(_message(exc), code=exc.sqlstate or "")
 
 
+def _max_rows(node: dict[str, Any]) -> float:
+    """The largest row estimate of any node: a cross join shows up here even under a COUNT(*) or a LIMIT."""
+    rows = float(node.get("Plan Rows", 0.0))
+    for child in node.get("Plans", []) or []:
+        rows = max(rows, _max_rows(child))
+    return rows
+
+
 def _type_name(cur: psycopg.Cursor[Any], oid: int) -> str:
     info = cur.connection.adapters.types.get(oid)
     return info.name if info else str(oid)
@@ -190,7 +203,10 @@ def run_owner_query(db: Database, sql: str, params: Sequence[Any] = ()) -> Query
     started = time.monotonic()
     with db.owner() as conn, conn.transaction(), conn.cursor() as cur:
         cur.execute("SET LOCAL TimeZone = 'UTC'")
-        cur.execute(sql, params)
+        if params:
+            cur.execute(sql, params)
+        else:
+            cur.execute(sql)
         description = cur.description or []
         rows = cur.fetchall()
         columns = [ResultColumn(d.name, _type_name(cur, d.type_code)) for d in description]
