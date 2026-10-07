@@ -118,6 +118,11 @@ def correction_message(feedback: str) -> str:
     return f"The query could not be used: {feedback}\nReturn the full JSON object again with a corrected query."
 
 
+NULL_RESULT_FEEDBACK = (
+    "it ran but every value in the result is NULL, which usually means a filter matched nothing (for example a "
+    "name or code that does not exist). Check literal values against the listed column values. If NULL is really "
+    "the answer, return the same query."
+)
 EMPTY_RESULT_FEEDBACK = (
     "it ran but returned no rows. Check the filters, date ranges and literal values against the listed column "
     "values. If no rows is really the answer, return the same query."

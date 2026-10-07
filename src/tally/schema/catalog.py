@@ -122,6 +122,7 @@ def introspect(
     reader_role: str,
     layer: SemanticLayer = EMPTY_LAYER,
     view_columns: dict[str, list[tuple[str, str]]] | None = None,
+    view_sample_values: dict[str, dict[str, list[str]]] | None = None,
     sample_values: bool = True,
 ) -> Catalog:
     """Read the data schema with the owner connection. Only tables the reader role may SELECT from are included,
@@ -209,12 +210,21 @@ def introspect(
         tables[table] = info
 
     views: dict[str, TableInfo] = {}
+    view_samples = view_sample_values or {}
     for name, view in layer.semantic_views.items():
         typed = dict(view_columns.get(name, [])) if view_columns else {}
         names = list(typed) or list(view.columns)
         views[name] = TableInfo(
             name=name,
-            columns=[ColumnInfo(name=c, type=typed.get(c, ""), description=view.columns.get(c, "")) for c in names],
+            columns=[
+                ColumnInfo(
+                    name=c,
+                    type=typed.get(c, ""),
+                    description=view.columns.get(c, ""),
+                    samples=view_samples.get(name, {}).get(c, []),
+                )
+                for c in names
+            ],
             description=view.description,
             synonyms=list(view.synonyms),
             is_view=True,
@@ -268,3 +278,26 @@ def _pretty_type(name: str) -> str:
         "bpchar": "character",
         "varchar": "character varying",
     }.get(name, name)
+
+
+def view_samples(
+    conn: psycopg.Connection, layer: SemanticLayer, view_columns: dict[str, list[tuple[str, str]]]
+) -> dict[str, dict[str, list[str]]]:
+    """Distinct values of the low-cardinality text columns of each semantic view (run as the reader, read-only)."""
+    result: dict[str, dict[str, list[str]]] = {}
+    for name, view in layer.semantic_views.items():
+        for column, type_ in view_columns.get(name, []):
+            if type_ not in SAMPLE_TYPES or column.endswith("_id"):
+                continue
+            query = sql.SQL(
+                "SELECT v.{col}::text, count(*) FROM ({body}) AS v WHERE v.{col} IS NOT NULL GROUP BY 1 "
+                "ORDER BY 2 DESC, 1 LIMIT {n}"
+            ).format(col=sql.Identifier(column), body=sql.SQL(view.sql), n=MAX_SAMPLE_DISTINCT + 1)
+            with conn.transaction(), conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SELECT set_config('tally.region_scope', '*', true)")
+                cur.execute(query)
+                values = cur.fetchall()
+            if 0 < len(values) <= MAX_SAMPLE_DISTINCT:
+                result.setdefault(name, {})[column] = [str(v[0]) for v in values]
+    return result

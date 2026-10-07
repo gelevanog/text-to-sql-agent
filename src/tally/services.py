@@ -15,7 +15,7 @@ from tally.llm.base import ChatModel
 from tally.llm.budget import CallLedger, Throttle
 from tally.llm.factory import budgeted, build_chat_model
 from tally.logging_config import get_logger
-from tally.schema.catalog import Catalog, introspect, view_column_types
+from tally.schema.catalog import Catalog, introspect, view_column_types, view_samples
 from tally.schema.retrieval import EmbedFn, SchemaRetriever
 from tally.schema.semantic import EMPTY_LAYER, SemanticLayer, load_semantic_layer
 from tally.security import region_scope_enabled
@@ -76,9 +76,15 @@ def load_layer(settings: Settings) -> SemanticLayer:
 def build_catalog(db: Database, settings: Settings, layer: SemanticLayer) -> Catalog:
     with db.reader() as reader:
         view_types = view_column_types(reader, layer)
+        samples = view_samples(reader, layer, view_types)
     with db.owner() as owner:
         return introspect(
-            owner, schema=settings.data_schema, reader_role=settings.reader_role, layer=layer, view_columns=view_types
+            owner,
+            schema=settings.data_schema,
+            reader_role=settings.reader_role,
+            layer=layer,
+            view_columns=view_types,
+            view_sample_values=samples,
         )
 
 

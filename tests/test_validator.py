@@ -51,6 +51,9 @@ SAFE = [
     "SELECT c.id, (SELECT count(*) FROM orders o WHERE o.customer_id = c.id) AS orders FROM customers c",
     "SELECT id FROM orders /* a comment ; DROP TABLE orders */ WHERE id < 10",
     "SELECT id FROM orders -- trailing comment",
+    # an output alias named like the CTE it reads from (a false positive found by the real-model run)
+    "WITH d AS (SELECT r.order_item_id FROM refunds r) SELECT order_item_id, count(*) AS d FROM d "
+    "GROUP BY order_item_id ORDER BY d DESC",
 ]
 
 UNSAFE = [

@@ -25,6 +25,7 @@ from tally.agent.prompts import (
     ANSWER_SYSTEM,
     EMPTY_RESULT_FEEDBACK,
     GENERATE_SYSTEM,
+    NULL_RESULT_FEEDBACK,
     ModelPlan,
     ReplyParseError,
     TurnContext,
@@ -451,9 +452,10 @@ class Agent:
             },
             t2,
         )
-        if query_result.row_count == 0 and not empty_retry_used and attempt_no < cfg.max_corrections:
+        all_null = query_result.row_count > 0 and all(v is None for row in query_result.rows for v in row)
+        if (query_result.row_count == 0 or all_null) and not empty_retry_used and attempt_no < cfg.max_corrections:
             attempt.stage = "empty"
-            return EMPTY_RESULT_FEEDBACK, True
+            return (NULL_RESULT_FEEDBACK if all_null else EMPTY_RESULT_FEEDBACK), True
         attempt.stage = "ok"
         sink.step(
             "result",

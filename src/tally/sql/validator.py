@@ -413,6 +413,8 @@ class SQLValidator:
                 table_alias = column.table.lower()
                 if not table_alias:
                     in_projection = any(column is p or column in list(p.find_all(exp.Column)) for p in projections)
+                    if not in_projection and name in named:
+                        continue  # ORDER BY / GROUP BY an output alias, even one named like a table or CTE
                     if name in aliases:
                         result.violations.append(
                             Violation("whole_row", f"whole-row reference {name!r} is not allowed; select columns")
@@ -448,11 +450,18 @@ class SQLValidator:
             )
         for scope in traverse_scope(qualified):
             aliases = self._source_aliases(scope)
+            named = {s.lower() for s in getattr(scope.expression, "named_selects", [])}
+            projections = list(getattr(scope.expression, "expressions", []))
             for column in scope.expression.find_all(exp.Column):
-                if not column.table and column.name.lower() in aliases and column not in scope.columns:
-                    result.violations.append(
-                        Violation("whole_row", f"whole-row reference {column.name!r} is not allowed; select columns")
-                    )
+                name = column.name.lower()
+                if column.table or name not in aliases or column in scope.columns:
+                    continue
+                in_projection = any(column is p or column in list(p.find_all(exp.Column)) for p in projections)
+                if not in_projection and name in named:
+                    continue
+                result.violations.append(
+                    Violation("whole_row", f"whole-row reference {column.name!r} is not allowed; select columns")
+                )
         result.columns = columns
         seen: set[tuple[str, str]] = set()
         result.violations[:] = [

@@ -296,7 +296,7 @@ def render_context(catalog: Catalog, context: RetrievedContext) -> str:
         for name in context.views:
             view = catalog.views[name]
             out.append(f"{name} -- {view.description}")
-            out.extend(_column_line(c.name, c.type, desc=c.description) for c in view.columns)
+            out.extend(_column_line(c.name, c.type, desc=c.description, samples=c.samples) for c in view.columns)
         out.append("")
     out.append("### Tables")
     for name in context.tables:

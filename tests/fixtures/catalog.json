@@ -1613,7 +1613,12 @@
      "references": null,
      "description": "placed, shipped, delivered or returned (cancelled orders are excluded).",
      "pii": false,
-     "samples": []
+     "samples": [
+      "delivered",
+      "returned",
+      "shipped",
+      "placed"
+     ]
     },
     {
      "name": "region_code",
@@ -1623,7 +1628,13 @@
      "references": null,
      "description": "NA, EU, UK, APAC or LATAM.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "NA",
+      "EU",
+      "APAC",
+      "UK",
+      "LATAM"
+     ]
     },
     {
      "name": "region_name",
@@ -1633,7 +1644,13 @@
      "references": null,
      "description": "Region name.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "North America",
+      "Europe",
+      "Asia Pacific",
+      "United Kingdom",
+      "Latin America"
+     ]
     },
     {
      "name": "country_code",
@@ -1643,7 +1660,21 @@
      "references": null,
      "description": "Two-letter country code.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "US",
+      "DE",
+      "GB",
+      "JP",
+      "FR",
+      "AU",
+      "CA",
+      "BR",
+      "SG",
+      "NL",
+      "ES",
+      "IT",
+      "MX"
+     ]
     },
     {
      "name": "currency_code",
@@ -1653,7 +1684,17 @@
      "references": null,
      "description": "Currency the customer paid in.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "USD",
+      "EUR",
+      "GBP",
+      "JPY",
+      "AUD",
+      "CAD",
+      "BRL",
+      "SGD",
+      "MXN"
+     ]
     },
     {
      "name": "channel_id",
@@ -1673,7 +1714,14 @@
      "references": null,
      "description": "Marketing channel name.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "Paid Search",
+      "Organic Search",
+      "Social",
+      "Email",
+      "Direct",
+      "Affiliate"
+     ]
     },
     {
      "name": "campaign_id",
@@ -1693,7 +1741,10 @@
      "references": null,
      "description": "consumer or business.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "consumer",
+      "business"
+     ]
     },
     {
      "name": "units",
@@ -1811,7 +1862,13 @@
      "references": null,
      "description": "NA, EU, UK, APAC or LATAM.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "NA",
+      "EU",
+      "APAC",
+      "UK",
+      "LATAM"
+     ]
     },
     {
      "name": "country_code",
@@ -1821,7 +1878,21 @@
      "references": null,
      "description": "Two-letter country code.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "US",
+      "DE",
+      "GB",
+      "JP",
+      "FR",
+      "AU",
+      "CA",
+      "BR",
+      "SG",
+      "NL",
+      "ES",
+      "IT",
+      "MX"
+     ]
     },
     {
      "name": "channel_id",
@@ -1881,7 +1952,18 @@
      "references": null,
      "description": "Leaf category, e.g. Smart Bulbs.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "Smart Bulbs",
+      "Lamps",
+      "Smart Plugs",
+      "Outdoor Lighting",
+      "Light Strips",
+      "Sensors",
+      "Cables & Adapters",
+      "Batteries",
+      "Mounts",
+      "Hubs & Bridges"
+     ]
     },
     {
      "name": "parent_category_name",
@@ -1891,7 +1973,11 @@
      "references": null,
      "description": "Top-level category - Lighting, Smart Home or Accessories.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "Lighting",
+      "Smart Home",
+      "Accessories"
+     ]
     },
     {
      "name": "units",
@@ -1998,7 +2084,21 @@
      "references": null,
      "description": "Two-letter country code.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "US",
+      "GB",
+      "DE",
+      "JP",
+      "AU",
+      "FR",
+      "BR",
+      "CA",
+      "SG",
+      "NL",
+      "ES",
+      "MX",
+      "IT"
+     ]
     },
     {
      "name": "region_code",
@@ -2008,7 +2108,13 @@
      "references": null,
      "description": "NA, EU, UK, APAC or LATAM.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "NA",
+      "EU",
+      "APAC",
+      "UK",
+      "LATAM"
+     ]
     },
     {
      "name": "segment",
@@ -2018,7 +2124,10 @@
      "references": null,
      "description": "consumer or business.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "consumer",
+      "business"
+     ]
     },
     {
      "name": "signup_at",
@@ -2048,7 +2157,14 @@
      "references": null,
      "description": "Channel that acquired the customer, or NULL when unknown.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "Organic Search",
+      "Paid Search",
+      "Direct",
+      "Social",
+      "Email",
+      "Affiliate"
+     ]
     },
     {
      "name": "marketing_opt_in",
@@ -2058,7 +2174,10 @@
      "references": null,
      "description": "Whether the customer accepts marketing email.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "true",
+      "false"
+     ]
     },
     {
      "name": "first_order_at",
@@ -2146,7 +2265,13 @@
      "references": null,
      "description": "NA, EU, UK, APAC or LATAM.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "NA",
+      "EU",
+      "APAC",
+      "UK",
+      "LATAM"
+     ]
     },
     {
      "name": "plan_id",
@@ -2166,7 +2291,11 @@
      "references": null,
      "description": "Care Basic, Care Plus or Care Pro.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "Care Plus",
+      "Care Basic",
+      "Care Pro"
+     ]
     },
     {
      "name": "billing_period",
@@ -2176,7 +2305,10 @@
      "references": null,
      "description": "monthly or annual.",
      "pii": false,
-     "samples": []
+     "samples": [
+      "monthly",
+      "annual"
+     ]
     },
     {
      "name": "issued_at",

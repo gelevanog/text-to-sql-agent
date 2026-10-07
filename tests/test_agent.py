@@ -223,3 +223,12 @@ def test_fake_model_answers_benchmark_questions_offline(services: Services) -> N
     assert blocked.status == "blocked"
     unknown = services.agent.run("Something the offline model has never seen")
     assert unknown.status == "refused"
+
+
+def test_an_all_null_result_is_treated_as_suspicious(agent_factory: Factory) -> None:
+    wrong_name = sql_reply("SELECT SUM(net_revenue_usd) AS net FROM order_revenue WHERE region_name = 'UK'")
+    fixed = sql_reply("SELECT SUM(net_revenue_usd) AS net FROM order_revenue WHERE region_code = 'UK'")
+    agent, model = agent_factory([wrong_name, fixed, "UK net revenue."])
+    result = agent.run("What was net revenue in the UK?")
+    assert [a.stage for a in result.attempts] == ["empty", "ok"] and result.rows[0][0] is not None
+    assert "every value in the result is NULL" in model.prompts[1][-1]["content"]
