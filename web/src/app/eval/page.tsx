@@ -69,12 +69,12 @@ export default function EvalPage() {
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7">
         <Tile label="Execution accuracy" value={pct(s.execution_accuracy.accuracy)} sub={`${s.execution_accuracy.correct} of ${s.execution_accuracy.total} answerable`} />
-        <Tile label="Unsafe requests blocked" value={`${s.safety.blocked_or_refused}/${s.safety.unsafe_total}`} sub={`${s.safety.unsafe_executed} unsafe queries executed`} />
+        <Tile label="Unsafe queries executed" value={`${s.safety.unsafe_executed} of ${s.safety.unsafe_total}`} sub={`${s.safety.blocked_or_refused} refused, the rest answered safely or failed`} />
         <Tile label="Clarification recall" value={pct(s.clarification.recall)} sub={`${s.clarification.asked_on_ambiguous} of ${s.clarification.ambiguous_total} ambiguous`} />
         <Tile label="Clarification precision" value={pct(s.clarification.precision)} sub={`${s.clarification.asked_on_answerable} needless questions`} />
         <Tile label="Self-correction" value={`+${s.self_correction.rescued}`} sub={`first attempt ${pct(s.self_correction.first_attempt_accuracy)}`} />
         <Tile label="Answers checked first time" value={pct(s.answer_faithfulness.first_draft_rate)} sub={`${s.answer_faithfulness.template_fallback} template fallbacks`} />
-        <Tile label="Latency p50 / p95" value={`${ms(s.latency_ms.p50)}`} sub={`p95 ${ms(s.latency_ms.p95)} · ${s.llm_calls.mean ?? "—"} calls / question`} />
+        <Tile label="Answer time p50" value={`${ms(s.latency_ms.answerable_p50)}`} sub={`p95 ${ms(s.latency_ms.answerable_p95)} · ${s.llm_calls.mean ?? "—"} model calls / question`} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
@@ -101,16 +101,15 @@ export default function EvalPage() {
               </h2>
               <table className="w-full text-[12.5px]">
                 <thead className="bg-zinc-50 text-[11px] text-zinc-500">
-                  <tr><th className="px-3 py-1.5 text-left font-semibold">Configuration</th><th className="px-3 py-1.5 text-right font-semibold">Accuracy</th><th className="px-3 py-1.5 text-right font-semibold">Valid SQL</th><th className="px-3 py-1.5 text-right font-semibold">Calls</th><th className="px-3 py-1.5 text-right font-semibold">p50</th></tr>
+                  <tr><th className="px-3 py-1.5 text-left font-semibold">Configuration</th><th className="px-3 py-1.5 text-right font-semibold">Accuracy</th><th className="px-3 py-1.5 text-right font-semibold">Valid SQL</th><th className="px-3 py-1.5 text-right font-semibold">Prompt tokens</th></tr>
                 </thead>
                 <tbody>
                   {data.comparison.rows.map((row) => (
                     <tr key={row.name} className="border-t border-line">
-                      <td className="px-3 py-1.5"><div className="font-medium">{row.label}</div><div className="text-[11px] text-zinc-500">{shortModel(row.model)}{row.note ? ` · ${row.note}` : ""}</div></td>
+                      <td className="px-3 py-1.5"><div className="font-medium">{row.label}</div><div className="text-[11px] text-zinc-500">{shortModel(row.model)}</div></td>
                       <td className="px-3 py-1.5 text-right font-semibold tabular-nums">{pct(row.accuracy)} <span className="font-normal text-zinc-400">{row.correct}/{row.total}</span></td>
                       <td className="px-3 py-1.5 text-right tabular-nums">{pct(row.valid_sql)}</td>
-                      <td className="px-3 py-1.5 text-right tabular-nums">{row.calls_mean ?? "—"}</td>
-                      <td className="px-3 py-1.5 text-right tabular-nums">{ms(row.latency_p50)}</td>
+                      <td className="px-3 py-1.5 text-right tabular-nums">{row.prompt_tokens_median?.toLocaleString() ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -122,9 +121,11 @@ export default function EvalPage() {
             <ul className="divide-y divide-line text-[12.5px]">
               {unsafe.map((i) => (
                 <li key={i.id} className="flex items-center gap-2 px-4 py-1.5">
-                  <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-semibold", i.blocked ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800")}>{i.blocked ? "blocked" : i.status}</span>
+                  <span className={cn("rounded px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap", i.blocked ? "bg-emerald-50 text-emerald-800" : i.unsafe_executed ? "bg-red-50 text-red-800" : "bg-amber-50 text-amber-800")}>
+                    {i.blocked ? "refused" : i.unsafe_executed ? "UNSAFE" : i.status === "answered" ? "answered safely" : `${i.status}, nothing ran`}
+                  </span>
                   <span className="min-w-0 flex-1 truncate">{i.question}</span>
-                  <span className="text-[11px] text-zinc-500">{i.blocked_layer?.replace("_", " ")}</span>
+                  <span className="text-[11px] whitespace-nowrap text-zinc-500">{i.blocked_layer ? `by the ${i.blocked_layer.replace("_", " ")}` : ""}</span>
                 </li>
               ))}
             </ul>

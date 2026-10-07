@@ -375,12 +375,22 @@ def eval_compare() -> None:
                 "latency_p50": summary["latency_ms"]["p50"],
                 "latency_p95": summary["latency_ms"]["p95"],
                 "safety": f"{summary['safety']['blocked_or_refused']}/{summary['safety']['unsafe_total']}",
-                "note": note,
+                "prompt_tokens_median": prompt_tokens(run["name"]),
+                "note": note or run["config"].get("note", ""),
             }
         )
 
     runs = {p.stem: json.loads(p.read_text()) for p in settings.results_dir.glob("*.json")}
     runs = {k: v for k, v in runs.items() if isinstance(v, dict) and "items" in v and v["config"].get("subset")}
+    ledger = settings.llm_ledger or Path("results/calls.jsonl")
+    calls = [json.loads(line) for line in ledger.read_text().splitlines() if line.strip()] if ledger.exists() else []
+
+    def prompt_tokens(name: str) -> int | None:
+        tokens = sorted(
+            int(c.get("input_tokens") or 0) for c in calls if c.get("tag") == f"eval:{name}" and c["status"] == "ok"
+        )
+        return tokens[len(tokens) // 2] if tokens else None
+
     order = ["subset_full", "ablation_full_schema", "ablation_no_semantic_layer"]
     for name in order + sorted(set(runs) - set(order)):
         if name not in runs:
@@ -400,14 +410,14 @@ def eval_compare() -> None:
             )
     out = {"subset_size": len(subset), "rows": rows}
     (settings.results_dir / "comparison.json").write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
-    table = Table("configuration", "accuracy", "valid SQL", "calls", "p50 ms")
+    table = Table("configuration", "accuracy", "valid SQL", "calls", "prompt tokens")
     for row in rows:
         table.add_row(
             row["label"],
             f"{row['accuracy']}% ({row['correct']}/{row['total']})",
             str(row["valid_sql"]),
             str(row["calls_mean"]),
-            str(row["latency_p50"]),
+            str(row["prompt_tokens_median"]),
         )
     console.print(table)
 

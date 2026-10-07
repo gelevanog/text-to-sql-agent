@@ -160,6 +160,7 @@ def test_missing_keys_fail_clearly() -> None:
         (200, {"error": {"code": 502, "message": "upstream failed"}}, RetryableLLMError),
         (400, {"error": {"message": "bad request"}}, LLMError),
         (200, {"model": "m", "choices": [{"message": {"content": ""}, "finish_reason": "length"}]}, LLMError),
+        (200, {"model": "m", "choices": [{"message": {"content": "In APAC"}, "finish_reason": "length"}]}, LLMError),
     ],
 )
 def test_error_mapping(status: int, payload: dict[str, Any], error: type[Exception]) -> None:

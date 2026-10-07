@@ -60,7 +60,7 @@ class AgentConfig:
     max_plan_cost: float = 50_000_000.0
     max_plan_rows: float = 5_000_000.0
     max_tokens: int = 4000
-    answer_max_tokens: int = 1500
+    answer_max_tokens: int = 3000
     temperature: float = 0.0
     today: dt.date = dt.date(2026, 10, 1)
     region_scope: str = "*"

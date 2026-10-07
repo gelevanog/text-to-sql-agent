@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 ITEM_FIELDS = ("id", "category", "expect", "status", "correct", "clarified", "blocked", "rescued", "llm_calls",
-               "total_ms", "blocked_layer", "answer_source", "question")  # fmt: skip
+               "total_ms", "blocked_layer", "answer_source", "question", "unsafe_executed")  # fmt: skip
 
 
 def load_results(directory: Path) -> dict[str, Any]:

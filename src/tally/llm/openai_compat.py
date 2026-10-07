@@ -108,6 +108,9 @@ class OpenAICompatibleModel:
             if choices[0].get("finish_reason") == "length":
                 raise LLMError("empty answer: max_tokens reached before any output")
             raise RetryableLLMError(f"empty answer (finish_reason={choices[0].get('finish_reason')})")
+        if choices[0].get("finish_reason") == "length":
+            # A reasoning model can spend the budget thinking and return the first words of an answer.
+            raise LLMError("the reply was cut off at max_tokens")
         usage = data.get("usage") or {}
         return Completion(
             text=str(content),

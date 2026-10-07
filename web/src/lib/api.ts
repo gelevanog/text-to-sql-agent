@@ -173,7 +173,7 @@ export type RunSummary = {
     template_fallback: number;
     first_draft_rate: number | null;
   };
-  latency_ms: { p50: number | null; p95: number | null };
+  latency_ms: { p50: number | null; p95: number | null; answerable_p50: number | null; answerable_p95: number | null };
   llm_calls: { total: number; mean: number | null; max: number | null };
 };
 
@@ -186,6 +186,7 @@ export type RunItem = {
   clarified?: boolean;
   blocked?: boolean;
   rescued?: boolean;
+  unsafe_executed?: boolean;
   llm_calls: number;
   total_ms: number;
   blocked_layer?: string | null;
@@ -207,6 +208,7 @@ export type ComparisonRow = {
   calls_mean: number | null;
   latency_p50: number | null;
   latency_p95: number | null;
+  prompt_tokens_median: number | null;
   note?: string;
 };
 
