@@ -1,8 +1,8 @@
 """The answer may only use numbers that are in the result.
 
 Every number in the model's answer is matched against the result cells, the column names, the numbers in the
-question, and the literals of the SQL that produced the result (its date bounds, LIMIT and thresholds, so an answer
-may say which period it covers) plus today's date. A match
+question, and the literals of the SQL that produced the result (its date bounds and the day before each, LIMIT and
+thresholds, so an answer may say which period it covers) plus today's date. A match
 allows the usual ways a person writes a number: rounding or truncation to the digits shown, thousands separators,
 K/M/B suffixes, a fraction written as a percentage, and a dropped minus sign ("fell 16%" for -0.16). Integers up to
 12 (counts of rows, months) and the components of dates in the result are allowed too. Anything else is reported,
@@ -111,7 +111,9 @@ def _supported(number: FoundNumber, references: Sequence[float]) -> bool:
         candidates.append((value / 100.0, tolerance / 100.0))
     for candidate, tol in candidates:
         for ref in references:
-            if abs(abs(candidate) - abs(ref)) <= tol:
+            # Rounding (half a unit) always; truncation (a whole unit) only of a value that has a fraction.
+            allowed = tol if not float(ref).is_integer() else tol / 2
+            if abs(abs(candidate) - abs(ref)) <= allowed:
                 return True
     return False
 
@@ -147,8 +149,14 @@ def sql_literals(sql: str) -> list[str]:
         return []
     literals: list[str] = []
     for text in _SQL_STRING.findall(sql):
-        if _DATE.match(text.strip()):
-            literals.extend(g for g in _DATE.match(text.strip()).groups() if g)  # type: ignore[union-attr]
+        match = _DATE.match(text.strip())
+        if not match:
+            continue
+        literals.extend(g for g in match.groups() if g)
+        if match.group(3):
+            # A half-open range ending on 2026-10-01 is described as "through September 30".
+            day = dt.date(int(match.group(1)), int(match.group(2)), int(match.group(3))) - dt.timedelta(days=1)
+            literals.extend([str(day.year), str(day.month), str(day.day)])
     without_strings = _SQL_STRING.sub(" ", sql)
     literals.extend(_SQL_NUMBER.findall(without_strings))
     return literals

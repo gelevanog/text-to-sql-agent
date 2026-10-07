@@ -352,7 +352,7 @@ def eval_compare() -> None:
     settings = _settings()
     subset = {i.id for i in load_benchmark(settings.benchmark_file) if i.subset}
     labels = {
-        "main": "Tally: retrieval + semantic layer + self-correction",
+        "subset_full": "Tally: retrieval + semantic layer + self-correction",
         "ablation_full_schema": "Full schema dump instead of retrieval",
         "ablation_no_semantic_layer": "Without the semantic layer",
     }
@@ -380,23 +380,24 @@ def eval_compare() -> None:
         )
 
     runs = {p.stem: json.loads(p.read_text()) for p in settings.results_dir.glob("*.json")}
-    if "main" in runs:
-        main = [r for r in runs["main"]["items"] if r["id"] in subset]
-        add("main", labels["main"], runs["main"], main, "includes the answer step")
-        first = [{**r, "correct": r.get("first_attempt_correct", r.get("correct"))} for r in main]
-        add(
-            "no_self_correction",
-            "Without self-correction (first attempt of the same run)",
-            runs["main"],
-            first,
-            "derived: the first query re-executed",
-        )
-    for name, run in sorted(runs.items()):
-        if name in {"main", "fake"} or "items" not in run or not run["config"].get("subset"):
+    runs = {k: v for k, v in runs.items() if isinstance(v, dict) and "items" in v and v["config"].get("subset")}
+    order = ["subset_full", "ablation_full_schema", "ablation_no_semantic_layer"]
+    for name in order + sorted(set(runs) - set(order)):
+        if name not in runs:
             continue
+        run = runs[name]
         records = [r for r in run["items"] if r["id"] in subset]
-        label = labels.get(name) or f"Model: {str(run['config'].get('model', name)).split('/', 1)[-1]}"
-        add(name, label, run, records, "no answer step")
+        model = str(run["config"].get("model", name)).split("/", 1)[-1]
+        add(name, labels.get(name) or f"Model: {model}", run, records)
+        if name == "subset_full":
+            first = [{**r, "correct": r.get("first_attempt_correct", r.get("correct"))} for r in records]
+            add(
+                "no_self_correction",
+                "Without self-correction",
+                run,
+                first,
+                "derived: the first query of the same run, re-executed",
+            )
     out = {"subset_size": len(subset), "rows": rows}
     (settings.results_dir / "comparison.json").write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")
     table = Table("configuration", "accuracy", "valid SQL", "calls", "p50 ms")

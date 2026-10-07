@@ -52,6 +52,13 @@ def test_small_counts_dates_and_question_numbers_are_allowed() -> None:
     assert check_answer("The top 25 products...", [[1.5]], question="Show the top 25 products").ok
 
 
+def test_periods_named_from_the_sql_are_allowed() -> None:
+    sql = "SELECT SUM(x) FROM t WHERE d >= DATE '2026-01-01' AND d < DATE '2026-10-01' LIMIT 10"
+    answer = "From January 1 through September 30, 2026 the top 10 made $5.5."
+    assert check_answer(answer, [[5.5]], sql=sql).ok
+    assert not check_answer("Through September 29 it made $5.5.", [[5.5]], sql=sql).ok
+
+
 def test_number_extraction_handles_suffixes_and_signs() -> None:
     found = {n.text: n.value for n in extract_numbers("Revenue was $1.23M, costs 12.5K, change -4.2%, 2,500 units")}
     assert found["$1.23M"] == pytest.approx(1_230_000)
