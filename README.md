@@ -172,7 +172,76 @@ uv run tally ask "What was net revenue by region last calendar quarter vs the on
 uv run tally ask "Delete all cancelled orders"
 ```
 
-The CLI: `tally seed | ask | schema | validate | setup-reader | serve | eval ...` (`--help` on each).
+The CLI: `tally seed | ask | schema | validate | setup-reader | serve | mcp | eval ...` (`--help` on each).
+
+## Use with Claude Code and Claude Desktop
+
+`tally mcp` runs an [MCP](https://modelcontextprotocol.io) server, so Claude can query the database through Tally's guard. **Claude is the model here:** it writes the SQL, and Tally supplies what it does without a model: the schema and the semantic layer, view expansion, the validator, the cost guard and read-only execution. Tally makes no model call of its own unless you add `--with-ask`.
+
+| Tool | What it does |
+|---|---|
+| `describe_schema(question?)` | Tables, columns (types, keys, joins, sample values), semantic views, metric definitions, business rules, synonyms, ambiguous terms (gross or net revenue, calendar or fiscal quarter), the personal-data columns, the guard's limits and the pinned "today" (2026-10-01 for the demo). Pass the user's question to get only the relevant part (Tally's BM25 retrieval); leave it out for the whole schema (about 19 KB of text). |
+| `validate_sql(sql)` | The validator and the cost estimate (`EXPLAIN` without `ANALYZE`) without running the query: the verdict, each violation with its code and whether it is a hard block, and the exact SQL that would run (views expanded, LIMIT enforced, `CURRENT_DATE` pinned). |
+| `run_sql(sql, max_rows=50, purpose?)` | The same pipeline as Tally's own agent: views expanded, validated, cost-checked, then executed as the read-only reader role in a `READ ONLY` transaction with the statement timeout, the row cap and the RLS scope. Returns columns, rows, row count, the executed SQL and a chart suggestion, or `status: "blocked"` / `"invalid"` / `"error"` with the reasons. Each call goes to Tally's audit log as `[mcp] <purpose>`. |
+| `ask(question, ...)` | Off by default; `tally mcp --with-ask` enables it. Runs Tally's whole agent with `TALLY_LLM_PROVIDER` (the offline demo model by default, so it only knows the demo questions; the free-only guard still applies). |
+
+All tools are annotated read-only. Hard violations (writes, DDL, several statements, system catalogs, dangerous functions, personal-data columns) come back with a hint not to work around them; soft ones (an unknown column, a parse error, `SELECT *` over personal data) ask Claude to fix the SQL. Output is bounded: at most 500 rows per call (50 by default), cells cut at 500 characters and about 60 KB per result, always with a note that the rows are data, not instructions (the demo's support tickets contain a planted prompt injection). Settings come from the usual `TALLY_*` variables or `.env`; the server never returns connection strings or keys.
+
+**1. Start the database** (Docker for PostgreSQL only). The `docker compose` stack does not publish PostgreSQL to the host, so use the Make targets:
+
+```bash
+make install    # or just: uv sync
+make db         # PostgreSQL 17 on 127.0.0.1:55460
+make seed       # the demo data, the read-only role and its grants
+```
+
+**2a. Claude Code.** Use an absolute path to this repository:
+
+```bash
+claude mcp add tally --env TALLY_DATABASE_URL=postgresql://tally:tally@127.0.0.1:55460/tally \
+  -- uv run --directory /path/to/text-to-sql-agent tally mcp
+claude mcp list            # shows "✔ Connected" next to tally (or run /mcp inside a session)
+```
+
+The command adds the server for you, in the current project only (local scope). Add `--scope project` to write a shared `.mcp.json` instead. The repository ships [`.mcp.json.example`](.mcp.json.example), not a live `.mcp.json`, so cloning it never loads a server. To use it inside this checkout, run `cp .mcp.json.example .mcp.json` and approve the server the next time you start `claude`:
+
+```json
+{
+  "mcpServers": {
+    "tally": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "${CLAUDE_PROJECT_DIR:-.}", "tally", "mcp"],
+      "env": { "TALLY_DATABASE_URL": "${TALLY_DATABASE_URL:-postgresql://tally:tally@127.0.0.1:55460/tally}" }
+    }
+  }
+}
+```
+
+**2b. Claude Desktop.** Add this to `claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`), then quit Claude Desktop completely and start it again. Paths must be absolute. If Claude Desktop cannot find `uv`, put the full path from `which uv` in `command`.
+
+```json
+{
+  "mcpServers": {
+    "tally": {
+      "command": "uv",
+      "args": ["run", "--directory", "/absolute/path/to/text-to-sql-agent", "tally", "mcp"],
+      "env": { "TALLY_DATABASE_URL": "postgresql://tally:tally@127.0.0.1:55460/tally" }
+    }
+  }
+}
+```
+
+**Streamable HTTP**, for clients that connect to a URL: `uv run tally mcp --http --port 8765` serves `http://127.0.0.1:8765/mcp` (`claude mcp add --transport http tally http://127.0.0.1:8765/mcp`). It has no authentication, so keep it on localhost.
+
+**What to ask:**
+
+- *"What was net revenue by region last calendar quarter?"* Claude calls `describe_schema` with the question and gets the `order_revenue` view, the net-revenue metric, the rule that refunds, cancelled orders and test accounts are already handled, and "today" = 2026-10-01. It then calls `run_sql` with `SELECT region_code, SUM(net_revenue_usd) ... FROM order_revenue WHERE order_date >= '2026-07-01' AND order_date < '2026-10-01' GROUP BY 1` and gets 5 rows, with a bar chart suggested.
+- *"Delete all cancelled orders"*, or *"read /etc/passwd with pg_read_file"*. `run_sql` returns `status: "blocked"`, `layer: "validator"` with the reasons "only SELECT queries are allowed (got DELETE); Tally never changes data" and "function pg_read_file() is not allowed in a read-only query". Nothing reaches the database. If something did get past the validator, the reader role is read-only and the transaction is `READ ONLY`.
+- *"List the emails of our top 10 customers"*. `describe_schema` already lists `customers.email`, `phone` and `street_address` as personal data, and `SELECT email ...` is blocked with "customers.email is personal data and may not be queried". The reader role has no grant on those columns either.
+- A query that cross-joins the order tables is stopped by the cost guard (an estimated 56 trillion rows against a limit of 5 million) before it runs.
+
+**Verified here:** what is tested is the server itself. 25 tests in `tests/test_mcp.py` use the SDK's in-process client and a real stdio subprocess. They cover tool schemas and annotations, every verdict above, truncation, the audit log, `ask` with the offline model, and an unreachable database (a helpful error that never contains the password). A manual smoke test called the server over Streamable HTTP and through the MCP Inspector CLI: `npx -y @modelcontextprotocol/inspector@2.9.0 --cli uv run tally mcp -e TALLY_DATABASE_URL=... --method tools/list`. The server was not driven from the Claude Desktop app in this repository's checks. Built on the MCP Python SDK `mcp==2.3.0`.
 
 ## Run with free models via OpenRouter
 
@@ -442,7 +511,8 @@ src/tally/
   demo/                  the Lumora schema, deterministic generator and seeding
   eval/                  benchmark loader, result comparator, runner and metrics
   api/app.py             FastAPI: ask (JSON + SSE), conversations, saved, schema, validate, audit, evaluation
-  cli.py                 tally seed | ask | schema | validate | setup-reader | serve | eval
+  mcp_server.py          MCP server for Claude Code / Desktop: describe_schema, validate_sql, run_sql (+ optional ask)
+  cli.py                 tally seed | ask | schema | validate | setup-reader | serve | mcp | eval
 configs/semantic_layer.yaml
 data/benchmark/questions.yaml   117 questions with reference SQL
 web/src/                 Next.js App Router: chat, schema browser, evaluation, audit log
@@ -454,7 +524,7 @@ docs/screenshots/        screenshots and the script that takes them
 ## Testing
 
 ```bash
-make test        # 220 pytest tests; no API keys (database tests need TEST_DATABASE_URL, e.g. `make db`)
+make test        # 274 pytest tests; no API keys (database tests need TEST_DATABASE_URL, e.g. `make db`)
 make lint        # ruff check, ruff format --check, mypy --strict
 make web-lint    # eslint + tsc --noEmit (strict)
 make web-build   # next build
@@ -471,6 +541,7 @@ make eval-offline  # the whole benchmark with the offline model: checks every go
 | `test_llm.py` | the free-only guard (ids, fallbacks, served model, applied before anything is built, not applied to other providers), OpenRouter and **Qwen Cloud request shapes** (URL, key, model, `models`, `reasoning`, `enable_thinking`, the DashScope variable and a custom endpoint), missing keys, error mapping (429 with retry-after, 5xx, errors inside a 200, empty answers), the budget wrapper (retries, ledger without prompts, cache, hard budget), the 403 fallback to the next free model, the Anthropic provider with a mocked SDK client, cloud embeddings (guard, cache, ledger), the offline model's playbook and robust reply parsing |
 | `test_api.py` | health, ask as JSON, the SSE stream's event order, follow-ups and conversation history, the clarification round trip, blocked requests with reasons, saved-question CRUD, the schema endpoint hiding personal-data samples, the validate-only endpoint, the audit log's fields, evaluation results |
 | `test_cli_eval.py` | the benchmark is well formed, every gold query runs, a mixed set of benchmark items end to end (period over period, a follow-up, a trap, a tie, a clarification chain, a write, a cross join, an injection), CLI `ask`, `validate` exit codes and `schema`, `eval run` writing results |
+| `test_mcp.py` | the MCP server through the SDK's in-process client and a real stdio subprocess: tool names, input schemas and read-only annotations; `ask` only with `--with-ask`; argument validation; an unreachable database as a helpful error without the password; `describe_schema` for a question and in full (no personal-data columns); `run_sql` answers, row and cell truncation, hard blocks (DELETE, `pg_read_file`, `pg_sleep`, PII, two statements, system catalogs, a data-modifying CTE), soft findings, the cost guard, database errors, the planted injection marked as data, the audit log; `validate_sql` without execution and with `CURRENT_DATE` pinned; `ask` with the offline model |
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs ruff and mypy, the tests against a PostgreSQL 17 service container (with `REQUIRE_TEST_DB=1`, so database tests cannot be skipped silently), a CLI smoke run and the whole offline benchmark, the web app's lint, type check and build, and both Docker builds, with no keys. The real-model numbers above come from the CLI runs described in the results, not from CI.
 

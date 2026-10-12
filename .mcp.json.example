@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "tally": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "${CLAUDE_PROJECT_DIR:-.}", "tally", "mcp"],
+      "env": {
+        "TALLY_DATABASE_URL": "${TALLY_DATABASE_URL:-postgresql://tally:tally@127.0.0.1:55460/tally}"
+      }
+    }
+  }
+}

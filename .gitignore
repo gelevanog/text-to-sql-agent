@@ -27,7 +27,8 @@ web/out/
 web/next-env.d.ts
 *.tsbuildinfo
 
-# Tooling
+# Tooling (a local .mcp.json is never committed; .mcp.json.example is the template)
+.mcp.json
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
