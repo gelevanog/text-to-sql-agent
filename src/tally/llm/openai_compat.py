@@ -8,10 +8,17 @@ from typing import Any, Literal
 
 import httpx
 
-from tally.llm.base import Completion, LLMError, LLMUnavailableError, Message, RetryableLLMError
+from tally.llm.base import (
+    BudgetExceededError,
+    Completion,
+    LLMError,
+    LLMUnavailableError,
+    Message,
+    RetryableLLMError,
+)
 from tally.llm.guards import ensure_free_models, ensure_served_free
 
-Kind = Literal["openrouter", "qwen", "openai", "openai_compatible"]
+Kind = Literal["openrouter", "qwen", "openai", "openai_compatible", "gateway"]
 
 OPENROUTER_HEADERS = {
     "HTTP-Referer": "https://github.com/gelevanog/text-to-sql-agent",
@@ -130,6 +137,13 @@ def _error_message(data: dict[str, Any]) -> str:
     return str(error)[:300]
 
 
+def _is_budget_exhausted(data: dict[str, Any]) -> bool:
+    error = data.get("error")
+    if isinstance(error, dict):
+        return "budget_exhausted" in {error.get("type"), error.get("code")}
+    return data.get("type") == "budget_exhausted"
+
+
 def _json_or_error(response: httpx.Response) -> dict[str, Any]:
     status = response.status_code
     try:
@@ -145,6 +159,9 @@ def _json_or_error(response: httpx.Response) -> dict[str, Any]:
     if status < 400:
         return data
     message = _error_message(data)
+    if status == 429 and _is_budget_exhausted(data):
+        # A metered gateway's spending cap, not a rate limit: retrying cannot help.
+        raise BudgetExceededError(f"gateway budget exhausted: {message}")
     if status == 429:
         retry_after = response.headers.get("retry-after")
         try:

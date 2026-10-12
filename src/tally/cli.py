@@ -128,7 +128,9 @@ def validate(sql: Annotated[str, typer.Argument(help="SQL to check (nothing is e
 def ask(
     question: Annotated[str, typer.Argument(help="A question in plain English")],
     conversation: Annotated[str | None, typer.Option(help="Continue this conversation id")] = None,
-    provider: Annotated[str | None, typer.Option(help="fake | openrouter | qwen | openai | anthropic")] = None,
+    provider: Annotated[
+        str | None, typer.Option(help="fake | openrouter | qwen | openai | anthropic | openai_compatible | gateway")
+    ] = None,
     model: Annotated[str | None, typer.Option(help="Model id")] = None,
     as_json: Annotated[bool, typer.Option("--json", help="Print the full result as JSON")] = False,
 ) -> None:
@@ -192,7 +194,9 @@ def _eval_services(settings: Settings, *, tag: str) -> Any:
 @eval_app.command("run")
 def eval_run(
     name: Annotated[str, typer.Option(help="Result file name in results/")] = "fake",
-    provider: Annotated[str | None, typer.Option(help="fake | openrouter | qwen | openai | anthropic")] = None,
+    provider: Annotated[
+        str | None, typer.Option(help="fake | openrouter | qwen | openai | anthropic | openai_compatible | gateway")
+    ] = None,
     model: Annotated[str | None, typer.Option(help="Model id")] = None,
     fallbacks: Annotated[str | None, typer.Option(help="Comma-separated OpenRouter fallback models")] = None,
     subset: Annotated[bool, typer.Option(help="Only the stratified ablation subset")] = False,

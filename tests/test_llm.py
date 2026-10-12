@@ -87,6 +87,53 @@ def test_factory_applies_the_guard_before_building_anything() -> None:
     assert build_chat_model(relaxed).label == "openrouter/openai/gpt-5"
 
 
+def test_paid_gateway_is_refused_by_default_and_allowed_only_by_the_explicit_opt_in() -> None:
+    settings = Settings(
+        llm_provider="gateway", llm_model="claude-haiku-5-5", llm_base_url="http://127.0.0.1:9/v1", llm_api_key="k"
+    )
+    assert settings.allow_paid_models is False
+    with pytest.raises(PolicyViolationError, match="TALLY_ALLOW_PAID_MODELS"):
+        build_chat_model(settings)
+    # The opt-in does not relax the OpenRouter free-only guard.
+    with pytest.raises(PolicyViolationError, match="free-only guard"):
+        build_chat_model(settings.model_copy(update={"allow_paid_models": True}), provider="openrouter", model="x/y")
+    allowed = build_chat_model(settings.model_copy(update={"allow_paid_models": True}))
+    assert isinstance(allowed, OpenAICompatibleModel)
+    assert allowed.label == "gateway/claude-haiku-5-5" and not allowed.require_free
+
+
+def test_paid_opt_in_is_read_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert Settings().allow_paid_models is False
+    monkeypatch.setenv("TALLY_ALLOW_PAID_MODELS", "true")
+    assert Settings().allow_paid_models is True
+
+
+def test_gateway_request_shape_and_budget_exhausted_is_not_retried(tmp_path: Path) -> None:
+    exhausted = {"error": {"type": "budget_exhausted", "message": "project budget exhausted"}}
+    recorder = Recorder(
+        [httpx.Response(200, json=ok_response("claude-haiku-5-5")), httpx.Response(429, json=exhausted)]
+    )
+    settings = Settings(
+        llm_provider="gateway",
+        llm_model="claude-haiku-5-5",
+        llm_base_url="http://127.0.0.1:9/v1",
+        llm_api_key=FAKE_KEY,
+        allow_paid_models=True,
+    )
+    model = build_chat_model(settings)
+    assert isinstance(model, OpenAICompatibleModel)
+    model._transport = recorder.transport
+    model.complete(MESSAGES, max_tokens=50)
+    body = json.loads(recorder.requests[0].content)
+    assert str(recorder.requests[0].url) == "http://127.0.0.1:9/v1/chat/completions"
+    assert body["model"] == "claude-haiku-5-5"
+    assert "models" not in body and "reasoning" not in body and "enable_thinking" not in body
+    wrapped = BudgetedModel(model, ledger=CallLedger(tmp_path / "c.jsonl", 10), cache=None, throttle=None)
+    with pytest.raises(BudgetExceededError, match="budget exhausted"):
+        wrapped.complete([{"role": "user", "content": "another"}], max_tokens=50)
+    assert len(recorder.requests) == 2  # one request for the 429: no retries
+
+
 def test_free_only_guard_does_not_apply_to_other_providers() -> None:
     model = OpenAICompatibleModel(
         kind="qwen", base_url=DEFAULT_QWEN_BASE_URL, api_key=FAKE_KEY, model="qwen3-coder-next"

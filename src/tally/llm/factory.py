@@ -11,7 +11,7 @@ from tally.llm.anthropic_provider import AnthropicModel
 from tally.llm.base import ChatModel, LLMError
 from tally.llm.budget import BudgetedModel, CallLedger, DiskCache, Throttle
 from tally.llm.fake import FakeModel
-from tally.llm.guards import ensure_free_models
+from tally.llm.guards import ensure_free_models, ensure_paid_allowed
 from tally.llm.openai_compat import OpenAICompatibleModel
 
 PlaybookLoader = Callable[[], Mapping[str, Mapping[str, Any]]]
@@ -31,6 +31,8 @@ def build_chat_model(
     # Guards first: nothing is constructed (no client, no key read) for a refused model.
     if kind == "openrouter" and settings.require_free_models:
         ensure_free_models([name, *fallbacks])
+    if kind == "gateway":
+        ensure_paid_allowed(kind, name, allowed=settings.allow_paid_models)
     if kind == "fake":
         return FakeModel(playbook() if playbook else {})
     if kind == "anthropic":
@@ -45,15 +47,17 @@ def build_chat_model(
         "qwen": settings.qwen_base_url,
         "openai": settings.openai_base_url,
         "openai_compatible": settings.llm_base_url,
+        "gateway": settings.llm_base_url,
     }[kind]
     api_key = {
         "openrouter": settings.openrouter_api_key,
         "qwen": settings.qwen_api_key,
         "openai": settings.openai_api_key,
         "openai_compatible": settings.llm_api_key,
+        "gateway": settings.llm_api_key,
     }[kind]
-    if kind == "openai_compatible" and not base_url:
-        raise LLMError("TALLY_LLM_BASE_URL is required for the openai_compatible provider")
+    if kind in {"openai_compatible", "gateway"} and not base_url:
+        raise LLMError(f"TALLY_LLM_BASE_URL is required for the {kind} provider")
     return OpenAICompatibleModel(
         kind=kind,
         base_url=base_url,
