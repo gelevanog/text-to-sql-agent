@@ -8,10 +8,17 @@ from typing import Any, Literal
 
 import httpx
 
-from tally.llm.base import Completion, LLMError, LLMUnavailableError, Message, RetryableLLMError
+from tally.llm.base import (
+    BudgetExceededError,
+    Completion,
+    LLMError,
+    LLMUnavailableError,
+    Message,
+    RetryableLLMError,
+)
 from tally.llm.guards import ensure_free_models, ensure_served_free
 
-Kind = Literal["openrouter", "qwen", "openai", "openai_compatible"]
+Kind = Literal["openrouter", "qwen", "openai", "openai_compatible", "gateway"]
 
 OPENROUTER_HEADERS = {
     "HTTP-Referer": "https://github.com/gelevanog/text-to-sql-agent",
@@ -72,6 +79,9 @@ class OpenAICompatibleModel:
             "temperature": temperature,
             "stream": False,
         }
+        if self.kind == "gateway":
+            # Newer models behind a metered gateway (e.g. Claude 5.x) reject `temperature`; their default is used.
+            del body["temperature"]
         if self.kind == "openrouter":
             if self.fallback_models:
                 body["models"] = [self.model, *self.fallback_models]
@@ -107,6 +117,9 @@ class OpenAICompatibleModel:
         if not str(content).strip():
             if choices[0].get("finish_reason") == "length":
                 raise LLMError("empty answer: max_tokens reached before any output")
+            if choices[0].get("finish_reason") == "content_filter":
+                # The provider's own safety filter declined the prompt: the same prompt will be declined again.
+                raise LLMError("the model declined to answer (finish_reason=content_filter)")
             raise RetryableLLMError(f"empty answer (finish_reason={choices[0].get('finish_reason')})")
         if choices[0].get("finish_reason") == "length":
             # A reasoning model can spend the budget thinking and return the first words of an answer.
@@ -130,6 +143,13 @@ def _error_message(data: dict[str, Any]) -> str:
     return str(error)[:300]
 
 
+def _is_budget_exhausted(data: dict[str, Any]) -> bool:
+    error = data.get("error")
+    if isinstance(error, dict):
+        return "budget_exhausted" in {error.get("type"), error.get("code")}
+    return data.get("type") == "budget_exhausted"
+
+
 def _json_or_error(response: httpx.Response) -> dict[str, Any]:
     status = response.status_code
     try:
@@ -145,6 +165,9 @@ def _json_or_error(response: httpx.Response) -> dict[str, Any]:
     if status < 400:
         return data
     message = _error_message(data)
+    if status == 429 and _is_budget_exhausted(data):
+        # A metered gateway's spending cap, not a rate limit: retrying cannot help.
+        raise BudgetExceededError(f"gateway budget exhausted: {message}")
     if status == 429:
         retry_after = response.headers.get("retry-after")
         try:

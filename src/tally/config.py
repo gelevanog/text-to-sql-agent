@@ -11,7 +11,7 @@ from urllib.parse import quote, urlsplit, urlunsplit
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-LLMProviderKind = Literal["fake", "openrouter", "qwen", "openai", "anthropic", "openai_compatible"]
+LLMProviderKind = Literal["fake", "openrouter", "qwen", "openai", "anthropic", "openai_compatible", "gateway"]
 ClarifyPolicy = Literal["ask", "assume"]
 RetrievalMode = Literal["retrieval", "full"]
 EmbeddingProviderKind = Literal["off", "openrouter"]
@@ -31,6 +31,7 @@ DEFAULT_MODELS: dict[str, str] = {
     "openai": "gpt-5-mini",
     "anthropic": "claude-sonnet-5",
     "openai_compatible": "",
+    "gateway": "",
 }
 CLOUD_PROVIDERS = frozenset({"openrouter", "qwen", "openai", "anthropic"})
 
@@ -103,7 +104,7 @@ class Settings(BaseSettings):
     """Empty = the provider's default (DEFAULT_MODELS)."""
     llm_fallback_models: Annotated[list[str], NoDecode] = Field(default_factory=list)
     llm_base_url: str = ""
-    """For openai_compatible (vLLM, LM Studio, any OpenAI-compatible gateway)."""
+    """For openai_compatible (vLLM, LM Studio, any OpenAI-compatible gateway) and gateway (a metered one)."""
     llm_api_key: str | None = None
     llm_timeout_seconds: float = 120.0
     llm_max_tokens: int = 4000
@@ -112,6 +113,10 @@ class Settings(BaseSettings):
     """Sent to OpenRouter as reasoning.effort for reasoning models (empty = not sent)."""
     require_free_models: bool = True
     """Refuse any OpenRouter model id that does not end in ":free" (requests and the model that answered)."""
+    allow_paid_models: bool = False
+    """Explicit opt-in for the `gateway` provider: an OpenAI-compatible endpoint (TALLY_LLM_BASE_URL) that bills per
+    token for non-free models. Off by default, so the gateway provider is refused and nothing paid is called by
+    accident. It does not relax the OpenRouter free-only guard (that is TALLY_REQUIRE_FREE_MODELS)."""
 
     openrouter_api_key: str | None = Field(default=None, validation_alias=AliasChoices("OPENROUTER_API_KEY"))
     openrouter_base_url: str = Field(
