@@ -1,4 +1,4 @@
-"""Command line: tally seed | ask | schema | validate | setup-reader | serve | eval ..."""
+"""Command line: tally seed | ask | schema | validate | setup-reader | serve | mcp | eval ..."""
 
 from __future__ import annotations
 
@@ -182,6 +182,24 @@ def serve(
     import uvicorn
 
     uvicorn.run("tally.api.app:create_default_app", factory=True, host=host, port=port)
+
+
+@app.command()
+def mcp(
+    http: Annotated[bool, typer.Option("--http", help="Streamable HTTP instead of stdio")] = False,
+    host: Annotated[str, typer.Option(help="HTTP bind address (keep it local: there is no authentication)")] = (
+        "127.0.0.1"
+    ),
+    port: Annotated[int, typer.Option(help="HTTP port (the endpoint is /mcp)")] = 8765,
+    with_ask: Annotated[
+        bool, typer.Option("--with-ask", help="Also expose `ask`: Tally's own agent with TALLY_LLM_PROVIDER")
+    ] = False,
+) -> None:
+    """MCP server for Claude Code / Claude Desktop: describe_schema, validate_sql, run_sql (and optionally ask).
+    stdout carries the protocol; logs go to stderr."""
+    from tally.mcp_server import serve as serve_mcp
+
+    serve_mcp(_settings(), http=http, host=host, port=port, with_ask=with_ask)
 
 
 # ---- evaluation -------------------------------------------------------------------------------------------------
