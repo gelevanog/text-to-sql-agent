@@ -79,6 +79,9 @@ class OpenAICompatibleModel:
             "temperature": temperature,
             "stream": False,
         }
+        if self.kind == "gateway":
+            # Newer models behind a metered gateway (e.g. Claude 5.x) reject `temperature`; their default is used.
+            del body["temperature"]
         if self.kind == "openrouter":
             if self.fallback_models:
                 body["models"] = [self.model, *self.fallback_models]

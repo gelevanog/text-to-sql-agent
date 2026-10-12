@@ -128,6 +128,7 @@ def test_gateway_request_shape_and_budget_exhausted_is_not_retried(tmp_path: Pat
     assert str(recorder.requests[0].url) == "http://127.0.0.1:9/v1/chat/completions"
     assert body["model"] == "claude-haiku-5-5"
     assert "models" not in body and "reasoning" not in body and "enable_thinking" not in body
+    assert "temperature" not in body
     wrapped = BudgetedModel(model, ledger=CallLedger(tmp_path / "c.jsonl", 10), cache=None, throttle=None)
     with pytest.raises(BudgetExceededError, match="budget exhausted"):
         wrapped.complete([{"role": "user", "content": "another"}], max_tokens=50)
