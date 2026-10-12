@@ -1,0 +1,835 @@
+{
+ "name": "hard_opus",
+ "date": "2026-10-12T09:04:37+00:00",
+ "config": {
+  "model": "gateway/claude-opus-5-5",
+  "fallback_models": [],
+  "subset": false,
+  "answers": false,
+  "retrieval_mode": "retrieval",
+  "semantic_layer": true,
+  "max_corrections": 2,
+  "clarify_policy": "ask",
+  "embeddings": "off",
+  "today": "2026-10-01"
+ },
+ "summary": {
+  "items": 13,
+  "execution_accuracy": {
+   "correct": 9,
+   "total": 13,
+   "accuracy": 69.2,
+   "by_category": {
+    "cohort_retention": {
+     "correct": 1,
+     "total": 2,
+     "accuracy": 50.0
+    },
+    "follow_up": {
+     "correct": 4,
+     "total": 4,
+     "accuracy": 100.0
+    },
+    "join": {
+     "correct": 0,
+     "total": 2,
+     "accuracy": 0.0
+    },
+    "period_over_period": {
+     "correct": 2,
+     "total": 2,
+     "accuracy": 100.0
+    },
+    "timezone": {
+     "correct": 1,
+     "total": 1,
+     "accuracy": 100.0
+    },
+    "top_n_ties": {
+     "correct": 0,
+     "total": 1,
+     "accuracy": 0.0
+    },
+    "trap_soft_delete": {
+     "correct": 1,
+     "total": 1,
+     "accuracy": 100.0
+    }
+   },
+   "by_match_method": {
+    "columns": 6,
+    "exact": 3
+   }
+  },
+  "valid_sql": {
+   "answered": 13,
+   "total": 13,
+   "rate": 100.0
+  },
+  "self_correction": {
+   "first_attempt_correct": 9,
+   "first_attempt_accuracy": 69.2,
+   "rescued": 0,
+   "items_with_corrections": 0
+  },
+  "clarification": {
+   "ambiguous_total": 0,
+   "asked_on_ambiguous": 0,
+   "asked_on_answerable": 0,
+   "recall": null,
+   "precision": null,
+   "by_source": {},
+   "ambiguity_id_match": 0
+  },
+  "safety": {
+   "unsafe_total": 0,
+   "blocked_or_refused": 0,
+   "unsafe_executed": 0,
+   "by_layer": {},
+   "not_blocked": [],
+   "answers_with_contact_data": 0
+  },
+  "answer_faithfulness": {
+   "answers": 0,
+   "first_draft_ok": 0,
+   "ok_after_retry": 0,
+   "template_fallback": 0,
+   "first_draft_rate": null
+  },
+  "latency_ms": {
+   "p50": 9950.5,
+   "p95": 13604.6,
+   "answerable_p50": 9950.5,
+   "answerable_p95": 13604.6
+  },
+  "llm_calls": {
+   "total": 13,
+   "mean": 1,
+   "p50": 1.0,
+   "max": 1
+  }
+ },
+ "items": [
+  {
+   "id": "join_04",
+   "category": "join",
+   "expect": "answer",
+   "question": "Which marketing channel brought the most net revenue in 2025?",
+   "status": "answered",
+   "sql": "SELECT\n  channel_name,\n  ROUND(SUM(net_revenue_usd), 2) AS net_revenue_usd,\n  COUNT(*) AS orders,\n  ROUND(SUM(net_revenue_usd) / NULLIF(SUM(SUM(net_revenue_usd)) OVER (), 0), 4) AS revenue_share\nFROM order_revenue\nWHERE ordered_at >= DATE '2025-01-01'\n  AND ordered_at < DATE '2026-01-01'\nGROUP BY channel_name\nORDER BY SUM(net_revenue_usd) DESC;",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 10024.9,
+   "llm_ms": 9858.0,
+   "db_ms": 143.6,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 6,
+   "retrieved": [
+    "campaigns",
+    "marketing_channels",
+    "orders",
+    "customers",
+    "plan_price_history",
+    "regions",
+    "subscriptions",
+    "plans",
+    "currencies"
+   ],
+   "retrieved_views": [
+    "order_revenue",
+    "order_line_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": false,
+   "comparison": {
+    "match": false,
+    "method": "none",
+    "reason": "row count 6 != 1"
+   },
+   "gold_row_count": 1,
+   "first_attempt_correct": false,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 10344.4
+  },
+  {
+   "id": "join_08",
+   "category": "join",
+   "expect": "answer",
+   "question": "How many refunds with the reason 'defective' did each product category have in 2025?",
+   "status": "answered",
+   "sql": "SELECT olr.parent_category_name AS parent_category,\n       olr.category_name AS category,\n       COUNT(r.id) AS defective_refunds\nFROM refunds r\nJOIN order_line_revenue olr\n  ON olr.order_item_id = r.order_item_id\nWHERE r.reason = 'defective'\n  AND olr.order_date >= DATE '2025-01-01'\n  AND olr.order_date < DATE '2026-01-01'\nGROUP BY olr.parent_category_name, olr.category_name\nORDER BY defective_refunds DESC, category;",
+   "views": [
+    "order_line_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 10027.1,
+   "llm_ms": 9910.1,
+   "db_ms": 97.5,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 10,
+   "retrieved": [
+    "refunds",
+    "categories",
+    "products",
+    "support_tickets",
+    "campaigns",
+    "order_items",
+    "orders"
+   ],
+   "retrieved_views": [
+    "order_line_revenue",
+    "order_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": false,
+   "comparison": {
+    "match": false,
+    "method": "none",
+    "reason": "no predicted column matches gold column 2"
+   },
+   "gold_row_count": 10,
+   "first_attempt_correct": false,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 10213.6
+  },
+  {
+   "id": "pop_03",
+   "category": "period_over_period",
+   "expect": "answer",
+   "question": "Show net revenue for each month of 2026 with the difference in USD from the previous month",
+   "status": "answered",
+   "sql": "WITH monthly AS (\n  SELECT date_trunc('month', order_date)::date AS month,\n         SUM(net_revenue_usd) AS net_revenue\n  FROM order_revenue\n  WHERE order_date >= DATE '2025-12-01' AND order_date < DATE '2026-10-01'\n  GROUP BY 1\n), with_prev AS (\n  SELECT month,\n         net_revenue,\n         LAG(net_revenue) OVER (ORDER BY month) AS prev_net_revenue\n  FROM monthly\n)\nSELECT month,\n       ROUND(net_revenue, 2) AS net_revenue_usd,\n       ROUND(prev_net_revenue, 2) AS prev_month_net_revenue_usd,\n       ROUND(net_revenue - prev_net_revenue, 2) AS diff_usd,\n       ROUND((net_revenue - prev_net_revenue) / NULLIF(prev_net_revenue, 0), 4) AS pct_change\nFROM with_prev\nWHERE month >= DATE '2026-01-01'\nORDER BY month;",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 8285.3,
+   "llm_ms": 8164.0,
+   "db_ms": 101.8,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 9,
+   "retrieved": [
+    "campaigns",
+    "invoices",
+    "regions"
+   ],
+   "retrieved_views": [
+    "subscription_revenue",
+    "order_line_revenue",
+    "order_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "columns",
+    "reason": ""
+   },
+   "gold_row_count": 9,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 8566.6
+  },
+  {
+   "id": "pop_05",
+   "category": "period_over_period",
+   "expect": "answer",
+   "question": "Year over year, how did net revenue in calendar Q3 2026 compare with calendar Q3 2025 for each region?",
+   "status": "answered",
+   "sql": "SELECT\n  region_code,\n  region_name,\n  ROUND(SUM(CASE WHEN ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01' THEN net_revenue_usd ELSE 0 END), 2) AS q3_2026_net_revenue,\n  ROUND(SUM(CASE WHEN ordered_at >= DATE '2025-07-01' AND ordered_at < DATE '2025-10-01' THEN net_revenue_usd ELSE 0 END), 2) AS q3_2025_net_revenue,\n  ROUND(SUM(CASE WHEN ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01' THEN net_revenue_usd ELSE 0 END)\n      - SUM(CASE WHEN ordered_at >= DATE '2025-07-01' AND ordered_at < DATE '2025-10-01' THEN net_revenue_usd ELSE 0 END), 2) AS difference,\n  ROUND((SUM(CASE WHEN ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01' THEN net_revenue_usd ELSE 0 END)\n      - SUM(CASE WHEN ordered_at >= DATE '2025-07-01' AND ordered_at < DATE '2025-10-01' THEN net_revenue_usd ELSE 0 END))\n      / NULLIF(SUM(CASE WHEN ordered_at >= DATE '2025-07-01' AND ordered_at < DATE '2025-10-01' THEN net_revenue_usd ELSE 0 END), 0), 4) AS pct_change\nFROM order_revenue\nWHERE (ordered_at >= DATE '2025-07-01' AND ordered_at < DATE '2025-10-01')\n   OR (ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01')\nGROUP BY region_code, region_name\nORDER BY q3_2026_net_revenue DESC;",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 10108.6,
+   "llm_ms": 9961.1,
+   "db_ms": 73.6,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 5,
+   "retrieved": [
+    "campaigns",
+    "fx_rates",
+    "plan_price_history",
+    "invoices",
+    "orders",
+    "currencies",
+    "regions"
+   ],
+   "retrieved_views": [
+    "order_revenue",
+    "order_line_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "columns",
+    "reason": ""
+   },
+   "gold_row_count": 5,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 10321.5
+  },
+  {
+   "id": "topn_06",
+   "category": "top_n_ties",
+   "expect": "answer",
+   "question": "Which region had the highest refund rate in 2025?",
+   "status": "answered",
+   "sql": "SELECT region_code,\n       region_name,\n       ROUND(SUM(gross_revenue_usd), 2) AS gross_revenue_usd,\n       ROUND(SUM(refund_usd), 2) AS refunds_usd,\n       ROUND(SUM(refund_usd) / NULLIF(SUM(gross_revenue_usd), 0), 4) AS refund_rate\nFROM order_revenue\nWHERE order_date >= DATE '2025-01-01'\n  AND order_date < DATE '2026-01-01'\nGROUP BY region_code, region_name\nORDER BY refund_rate DESC NULLS LAST;",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 9950.5,
+   "llm_ms": 9831.3,
+   "db_ms": 104.6,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 5,
+   "retrieved": [
+    "refunds",
+    "campaigns",
+    "fx_rates",
+    "plan_price_history",
+    "regions",
+    "support_tickets",
+    "orders",
+    "currencies",
+    "subscriptions"
+   ],
+   "retrieved_views": [
+    "order_revenue",
+    "order_line_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": false,
+   "comparison": {
+    "match": false,
+    "method": "none",
+    "reason": "row count 5 != 1"
+   },
+   "gold_row_count": 1,
+   "first_attempt_correct": false,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 10237.3
+  },
+  {
+   "id": "cohort_02",
+   "category": "cohort_retention",
+   "expect": "answer",
+   "question": "For each first-order month in 2025, how many new customers were there and how many of them placed another order within 60 days?",
+   "status": "answered",
+   "sql": "WITH cohort AS (\n  SELECT customer_id,\n         first_order_at,\n         date_trunc('month', first_order_at AT TIME ZONE 'UTC')::date AS first_order_month\n  FROM customer_profile\n  WHERE first_order_at >= TIMESTAMPTZ '2025-01-01 00:00:00+00'\n    AND first_order_at <  TIMESTAMPTZ '2026-01-01 00:00:00+00'\n),\nrepeaters AS (\n  SELECT c.customer_id\n  FROM cohort c\n  JOIN order_revenue o\n    ON o.customer_id = c.customer_id\n   AND o.ordered_at >= c.first_order_at\n   AND o.ordered_at <  c.first_order_at + INTERVAL '60 days'\n  GROUP BY c.customer_id\n  HAVING COUNT(*) >= 2\n)\nSELECT c.first_order_month,\n       COUNT(*) AS new_customers,\n       COUNT(r.customer_id) AS repeat_within_60d,\n       ROUND(COUNT(r.customer_id)::numeric / NULLIF(COUNT(*), 0), 4) AS repeat_rate_60d\nFROM cohort c\nLEFT JOIN repeaters r ON r.customer_id = c.customer_id\nGROUP BY c.first_order_month\nORDER BY c.first_order_month;",
+   "views": [
+    "customer_profile",
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 15855.3,
+   "llm_ms": 15765.2,
+   "db_ms": 67.8,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 12,
+   "retrieved": [
+    "orders",
+    "campaigns",
+    "products",
+    "customers",
+    "support_tickets",
+    "marketing_channels",
+    "order_items"
+   ],
+   "retrieved_views": [
+    "customer_profile",
+    "order_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "columns",
+    "reason": ""
+   },
+   "gold_row_count": 12,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 18579.1
+  },
+  {
+   "id": "cohort_05",
+   "category": "cohort_retention",
+   "expect": "answer",
+   "question": "What is the average number of orders per customer by acquisition channel, for customers who signed up in 2025?",
+   "status": "answered",
+   "sql": "SELECT COALESCE(acquisition_channel, 'Unknown') AS acquisition_channel,\n       COUNT(*) AS customers,\n       SUM(COALESCE(order_count, 0)) AS total_orders,\n       ROUND(AVG(COALESCE(order_count, 0))::numeric, 4) AS avg_orders_per_customer\nFROM customer_profile\nWHERE signup_date >= DATE '2025-01-01'\n  AND signup_date < DATE '2026-01-01'\nGROUP BY COALESCE(acquisition_channel, 'Unknown')\nORDER BY avg_orders_per_customer DESC;",
+   "views": [
+    "customer_profile"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 11259.0,
+   "llm_ms": 11219.7,
+   "db_ms": 24.1,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 7,
+   "retrieved": [
+    "marketing_channels",
+    "customers",
+    "campaigns",
+    "support_tickets",
+    "orders",
+    "subscriptions",
+    "regions",
+    "currencies"
+   ],
+   "retrieved_views": [
+    "customer_profile",
+    "order_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": false,
+   "comparison": {
+    "match": false,
+    "method": "none",
+    "reason": "no predicted column matches gold column 1"
+   },
+   "gold_row_count": 7,
+   "first_attempt_correct": false,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 11324.8
+  },
+  {
+   "id": "trap_delete_02",
+   "category": "trap_soft_delete",
+   "expect": "answer",
+   "question": "How many orders did customers in the United States place in 2025?",
+   "status": "answered",
+   "sql": "SELECT COUNT(*) AS us_orders_2025\nFROM order_revenue\nWHERE country_code = 'US'\n  AND ordered_at >= DATE '2025-01-01'\n  AND ordered_at < DATE '2026-01-01';",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 9119.2,
+   "llm_ms": 9082.2,
+   "db_ms": 26.2,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 1,
+   "retrieved": [
+    "regions",
+    "customers",
+    "support_tickets",
+    "campaigns",
+    "order_items",
+    "orders",
+    "marketing_channels"
+   ],
+   "retrieved_views": [
+    "order_revenue",
+    "customer_profile",
+    "order_line_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "exact",
+    "reason": ""
+   },
+   "gold_row_count": 1,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 9195.5
+  },
+  {
+   "id": "tz_03",
+   "category": "timezone",
+   "expect": "answer",
+   "question": "How many EU orders were placed between 18:00 and midnight Berlin time in September 2026 (Berlin dates)?",
+   "status": "answered",
+   "sql": "SELECT COUNT(*) AS eu_evening_orders\nFROM order_revenue o\nWHERE o.region_code = 'EU'\n  AND (o.ordered_at AT TIME ZONE 'Europe/Berlin') >= TIMESTAMP '2026-09-01 00:00:00'\n  AND (o.ordered_at AT TIME ZONE 'Europe/Berlin') <  TIMESTAMP '2026-10-01 00:00:00'\n  AND EXTRACT(HOUR FROM (o.ordered_at AT TIME ZONE 'Europe/Berlin')) >= 18;",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 9091.7,
+   "llm_ms": 9051.4,
+   "db_ms": 23.8,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 1,
+   "retrieved": [
+    "regions",
+    "campaigns",
+    "orders"
+   ],
+   "retrieved_views": [
+    "order_revenue",
+    "customer_profile"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "exact",
+    "reason": ""
+   },
+   "gold_row_count": 1,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 9155.4
+  },
+  {
+   "id": "follow_01",
+   "category": "follow_up",
+   "expect": "answer",
+   "question": "Now by month",
+   "status": "answered",
+   "sql": "WITH monthly AS (\n  SELECT region_code,\n         region_name,\n         DATE_TRUNC('month', order_date)::date AS month,\n         SUM(net_revenue_usd) AS net_revenue\n  FROM order_revenue\n  WHERE ordered_at >= DATE '2026-04-01' AND ordered_at < DATE '2026-10-01'\n  GROUP BY region_code, region_name, DATE_TRUNC('month', order_date)\n)\nSELECT region_code,\n       region_name,\n       month,\n       ROUND(net_revenue, 2) AS net_revenue_usd,\n       ROUND(LAG(net_revenue) OVER w, 2) AS prev_month_net_revenue_usd,\n       ROUND(net_revenue - LAG(net_revenue) OVER w, 2) AS difference,\n       ROUND((net_revenue - LAG(net_revenue) OVER w) / NULLIF(LAG(net_revenue) OVER w, 0), 4) AS pct_change\nFROM monthly\nWINDOW w AS (PARTITION BY region_code ORDER BY month)\nORDER BY region_code, month;",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 9414.0,
+   "llm_ms": 9323.3,
+   "db_ms": 73.5,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 30,
+   "retrieved": [
+    "invoices",
+    "fx_rates",
+    "orders",
+    "regions",
+    "countries",
+    "campaigns",
+    "currencies"
+   ],
+   "retrieved_views": [
+    "order_revenue",
+    "subscription_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "columns",
+    "reason": ""
+   },
+   "gold_row_count": 30,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 9622.8
+  },
+  {
+   "id": "follow_03",
+   "category": "follow_up",
+   "expect": "answer",
+   "question": "Which EU country drove the drop from the second to the third calendar quarter?",
+   "status": "answered",
+   "sql": "SELECT country_code,\n       ROUND(SUM(net_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-04-01' AND ordered_at < DATE '2026-07-01'), 2) AS net_revenue_q2_2026,\n       ROUND(SUM(net_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01'), 2) AS net_revenue_q3_2026,\n       ROUND(COALESCE(SUM(net_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01'), 0)\n           - COALESCE(SUM(net_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-04-01' AND ordered_at < DATE '2026-07-01'), 0), 2) AS difference,\n       ROUND((COALESCE(SUM(net_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01'), 0)\n           - COALESCE(SUM(net_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-04-01' AND ordered_at < DATE '2026-07-01'), 0))\n           / NULLIF(SUM(net_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-04-01' AND ordered_at < DATE '2026-07-01'), 0), 4) AS pct_change,\n       ROUND(COALESCE(SUM(gross_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01'), 0)\n           - COALESCE(SUM(gross_revenue_usd) FILTER (WHERE ordered_at >= DATE '2026-04-01' AND ordered_at < DATE '2026-07-01'), 0), 2) AS gross_revenue_difference,\n       ROUND(COALESCE(SUM(refund_usd) FILTER (WHERE ordered_at >= DATE '2026-07-01' AND ordered_at < DATE '2026-10-01'), 0)\n           - COALESCE(SUM(refund_usd) FILTER (WHERE ordered_at >= DATE '2026-04-01' AND ordered_at < DATE '2026-07-01'), 0), 2) AS refund_difference\nFROM order_revenue\nWHERE region_code = 'EU'\n  AND ordered_at >= DATE '2026-04-01' AND ordered_at < DATE '2026-10-01'\nGROUP BY country_code\nORDER BY difference ASC NULLS LAST;",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 13604.6,
+   "llm_ms": 13523.5,
+   "db_ms": 58.8,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 5,
+   "retrieved": [
+    "regions",
+    "fx_rates",
+    "invoices",
+    "countries",
+    "payments",
+    "customers",
+    "currencies",
+    "orders"
+   ],
+   "retrieved_views": [
+    "order_revenue",
+    "customer_profile"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "columns",
+    "reason": ""
+   },
+   "gold_row_count": 5,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 13773.3
+  },
+  {
+   "id": "follow_06",
+   "category": "follow_up",
+   "expect": "answer",
+   "question": "Only business customers",
+   "status": "answered",
+   "sql": "SELECT date_trunc('month', order_date)::date AS order_month, COUNT(*) AS order_count FROM order_revenue WHERE order_date >= DATE '2024-01-01' AND order_date < DATE '2025-01-01' AND customer_segment = 'business' GROUP BY 1 ORDER BY 1;",
+   "views": [
+    "order_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 7697.6,
+   "llm_ms": 7656.4,
+   "db_ms": 30.4,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 12,
+   "retrieved": [
+    "customers",
+    "campaigns",
+    "support_tickets",
+    "invoices",
+    "payments",
+    "marketing_channels",
+    "fx_rates",
+    "plan_price_history",
+    "regions",
+    "orders",
+    "countries"
+   ],
+   "retrieved_views": [
+    "customer_profile",
+    "order_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "exact",
+    "reason": ""
+   },
+   "gold_row_count": 12,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 7768.8
+  },
+  {
+   "id": "follow_08",
+   "category": "follow_up",
+   "expect": "answer",
+   "question": "Show the same for 2026 so far",
+   "status": "answered",
+   "sql": "SELECT product_id, product_name, category_name, SUM(units) AS units_sold, ROUND(SUM(net_revenue_usd), 2) AS net_revenue_usd FROM order_line_revenue WHERE ordered_at >= DATE '2026-01-01' AND ordered_at < DATE '2026-10-01' GROUP BY product_id, product_name, category_name ORDER BY units_sold DESC, product_id LIMIT 5;",
+   "views": [
+    "order_line_revenue"
+   ],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 7091.6,
+   "llm_ms": 7008.1,
+   "db_ms": 63.6,
+   "served_models": [
+    "claude-opus-5-5"
+   ],
+   "row_count": 5,
+   "retrieved": [
+    "campaigns",
+    "invoices",
+    "orders",
+    "products",
+    "order_items",
+    "categories",
+    "regions",
+    "currencies"
+   ],
+   "retrieved_views": [
+    "order_line_revenue",
+    "order_revenue"
+   ],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "columns",
+    "reason": ""
+   },
+   "gold_row_count": 5,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 7432.7
+  }
+ ]
+}

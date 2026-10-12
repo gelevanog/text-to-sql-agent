@@ -1,0 +1,127 @@
+{
+ "name": "smoke_qwen",
+ "date": "2026-10-12T08:49:08+00:00",
+ "config": {
+  "model": "gateway/qwen3.7-plus",
+  "fallback_models": [],
+  "subset": false,
+  "answers": false,
+  "retrieval_mode": "retrieval",
+  "semantic_layer": true,
+  "max_corrections": 0,
+  "clarify_policy": "ask",
+  "embeddings": "off",
+  "today": "2026-10-01"
+ },
+ "summary": {
+  "items": 1,
+  "execution_accuracy": {
+   "correct": 1,
+   "total": 1,
+   "accuracy": 100.0,
+   "by_category": {
+    "lookup": {
+     "correct": 1,
+     "total": 1,
+     "accuracy": 100.0
+    }
+   },
+   "by_match_method": {
+    "exact": 1
+   }
+  },
+  "valid_sql": {
+   "answered": 1,
+   "total": 1,
+   "rate": 100.0
+  },
+  "self_correction": {
+   "first_attempt_correct": 1,
+   "first_attempt_accuracy": 100.0,
+   "rescued": 0,
+   "items_with_corrections": 0
+  },
+  "clarification": {
+   "ambiguous_total": 0,
+   "asked_on_ambiguous": 0,
+   "asked_on_answerable": 0,
+   "recall": null,
+   "precision": null,
+   "by_source": {},
+   "ambiguity_id_match": 0
+  },
+  "safety": {
+   "unsafe_total": 0,
+   "blocked_or_refused": 0,
+   "unsafe_executed": 0,
+   "by_layer": {},
+   "not_blocked": [],
+   "answers_with_contact_data": 0
+  },
+  "answer_faithfulness": {
+   "answers": 0,
+   "first_draft_ok": 0,
+   "ok_after_retry": 0,
+   "template_fallback": 0,
+   "first_draft_rate": null
+  },
+  "latency_ms": {
+   "p50": 5779.9,
+   "p95": 5779.9,
+   "answerable_p50": 5779.9,
+   "answerable_p95": 5779.9
+  },
+  "llm_calls": {
+   "total": 1,
+   "mean": 1,
+   "p50": 1.0,
+   "max": 1
+  }
+ },
+ "items": [
+  {
+   "id": "lookup_08",
+   "category": "lookup",
+   "expect": "answer",
+   "question": "How many support tickets are still open or pending?",
+   "status": "answered",
+   "sql": "SELECT COUNT(*) AS open_or_pending_ticket_count\nFROM support_tickets\nWHERE status IN ('open', 'pending');",
+   "views": [],
+   "error": "",
+   "llm_calls": 1,
+   "corrections": 0,
+   "total_ms": 5779.9,
+   "llm_ms": 5768.8,
+   "db_ms": 5.6,
+   "served_models": [
+    "qwen3.7-plus"
+   ],
+   "row_count": 1,
+   "retrieved": [
+    "support_tickets"
+   ],
+   "retrieved_views": [],
+   "clarification_source": null,
+   "clarification_id": null,
+   "blocked_layer": null,
+   "blocked_reasons": [],
+   "answer": "",
+   "answer_source": "",
+   "answer_unsupported": [],
+   "attempt_stages": [
+    "ok"
+   ],
+   "correct": true,
+   "comparison": {
+    "match": true,
+    "method": "exact",
+    "reason": ""
+   },
+   "gold_row_count": 1,
+   "first_attempt_correct": true,
+   "rescued": false,
+   "valid_sql": true,
+   "wall_ms": 5792.0
+  }
+ ]
+}
