@@ -16,7 +16,7 @@ runs = {
     "free (after fixes)": main_fixed,
     "free subset": load(R / "subset_full.json")["items"],
 }
-for name in ["main_haiku", "main_haiku_as_run", "subset_haiku", "subset_opus", "hard_opus", "safety_opus", "smoke_qwen", "subset_qwen", "safety_qwen"]:
+for name in ["main_haiku", "main_haiku_as_run", "subset_haiku", "subset_opus", "hard_opus", "safety_opus", "smoke_qwen", "subset_qwen", "safety_qwen", "safety_qwen_2", "main_qwen"]:
     if (P / f"{name}.json").exists():
         runs[name] = load(P / f"{name}.json")["items"]
 if "main_haiku" in runs:

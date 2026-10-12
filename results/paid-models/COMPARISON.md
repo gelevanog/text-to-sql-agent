@@ -19,7 +19,8 @@ OpenAI-compatible budget proxy using the new opt-in `gateway` provider (`TALLY_L
 | Opus, safety | `claude-opus-5-5` | 17 | all 15 unsafe requests + 2 prompt-injection items, answers on | `safety_opus.json` |
 | Qwen smoke | `qwen3.7-plus` | 1 | `--no-answers --max-corrections 0`, retrieval cut to 1 table + 1 metric (first, 3,000-token budget) | `smoke_qwen.json` |
 | Qwen, subset | `qwen3.7-plus` | 38 | `--subset --no-answers` (same as `subset_full`), default retrieval | `subset_qwen.json` |
-| Qwen, safety | `qwen3.7-plus` | 3 | 3 of the 11 unsafe requests outside the subset, `--no-answers --max-corrections 0`; the budget ran out before `safety_14` and `safety_15` | `safety_qwen.json` |
+| Qwen, safety | `qwen3.7-plus` | 3 + 2 | unsafe requests outside the subset, `--no-answers`; the first pass ran out of budget before `safety_14` and `safety_15`, which ran after the budget was raised | `safety_qwen.json`, `safety_qwen_2.json` |
+| Qwen, full | `qwen3.7-plus` | 117 | full agent, **answers off** (`--no-answers`); the subset and safety items were served from the disk cache of the runs above (same prompts) | `main_qwen.json` |
 
 Ledger of every paid request (model ids, status, latency, tokens, never prompts): `calls.jsonl`.
 
@@ -31,33 +32,34 @@ comparison is 87.6%.
 
 | Metric | Free (nemotron-3-super `:free`) | Haiku 5.5 | Opus 5.5 | Qwen 3.7 Plus |
 |---|---|---|---|---|
-| **Full set, 89 answerable questions** | 82.0% (73/89) as run; **87.6% (78/89)** after fixes | **85.4% (76/89)**; 83.1% (74/89) before re-asking 3 items that failed with a transient proxy 403 | not run (budget) | not run (budget) |
-| First-attempt accuracy (full set) | 78.7% as run / 83.1% after fixes | 84.3% (75/89) | n/a | n/a |
-| Self-repair: items rescued by a retry / answerable items with corrections | 3/3 as run, 4/4 after fixes (full set) | 1/1 (full set) | 1/1 (subset) | **0/3** (subset) |
-| Valid, executed SQL | 94.4% as run / 98.9% after fixes (full set) | 100% (full set) | 93.8% subset, 100% hard set | 96.9% (subset) |
+| **Full set, 89 answerable questions** | 82.0% (73/89) as run; **87.6% (78/89)** after fixes | **85.4% (76/89)**; 83.1% (74/89) before re-asking 3 items that failed with a transient proxy 403 | not run (budget) | **83.1% (74/89)** (answers off) |
+| First-attempt accuracy (full set) | 78.7% as run / 83.1% after fixes | 84.3% (75/89) | n/a | 83.1% (74/89) |
+| Self-repair: items rescued by a retry / answerable items with corrections | 3/3 as run, 4/4 after fixes (full set) | 1/1 (full set) | 1/1 (subset) | **0/4** (full set) |
+| Valid, executed SQL | 94.4% as run / 98.9% after fixes (full set) | 100% (full set) | 93.8% subset, 100% hard set | 97.8% (full set) |
 | **38-question subset, 32 answerable** (`--no-answers`) | 84.4% (27/32) | 84.4% (27/32) | **87.5% (28/32)** | 75.0% (24/32) |
 | First-attempt accuracy, subset | 81.2% (26/32) | 81.2% (26/32) | 84.4% (27/32) | 75.0% (24/32) |
-| Hard set: 19 answerable questions that free (after fixes) or Haiku got wrong | 8/19 | 6/19 | **12/19** | not run (budget) |
-| Of the 11 free failures (after fixes), fixed by | n/a | 6/11 | 7/11 | 0/4 (only 4 of them are in the subset: `join_03`, `join_07`, `topn_02`, `trap_fx_04`) |
-| Ambiguous questions: clarification recall / precision (full set) | 100% / 92.9% | 100% / **100%** | 100% / 66.7% on the subset (1 needless question out of 3) | 100% / 100% on the subset (2 of 2, both from the semantic layer) |
-| **Unsafe requests (15)**: refused by the model | 11 as run / 12 after fixes | 11 | 10 | **6 of the 7 tried** (subset 3/4 + 3/3) |
+| Hard set: 19 answerable questions that free (after fixes) or Haiku got wrong | 8/19 | 6/19 | **12/19** | 8/19 |
+| Of the 11 free failures (after fixes), fixed by | n/a | 6/11 | 7/11 | 4/11 |
+| Ambiguous questions: clarification recall / precision (full set) | 100% / 92.9% | 100% / **100%** | 100% / 66.7% on the subset (1 needless question out of 3) | **84.6%** / 100% (11/13, all 11 from the semantic layer) |
+| **Unsafe requests (15)**: refused by the model | 11 as run / 12 after fixes | 11 | 10 | **13** (the other 2 got a clarifying question) |
 | Unsafe queries executed | **0** | **0** | **0** | **0** |
 | Answers containing an email or phone number | 0 | 0 | 0 | 0 (answers off) |
 | Answer numbers: first draft passed the check / template fallback | 71/84 / 9 as run | 75/89 / 5 | n/a (answers off, except safety run) | n/a |
 | Latency per answered question, p50 / p95 (full agent, answers on) | 15.1 s / 30.7 s | **7.2 s / 10.4 s** | n/a | n/a |
-| Latency, subset with answers off, p50 / p95 | 6.8 s / 17.8 s | n/a (cache hits) | 8.0 s / 12.3 s | 7.1 s / 13.3 s |
-| Model calls per question | 1.79 (full set) | 1.80 (full set) | 0.97 (subset, answers off) | 1.05 (subset, answers off) |
-| Requests / tokens in / out (this run) | 491 requests total in `../calls.jsonl` | 214 / 541k / 108k | 76 / 323k / 45k | 46 (44 ok, 2 refused by the proxy budget) / 131k / 12.7k |
-| **Cost** | $0 | **$0.11** | **$2.20** | **144,023 of 150,000** proxy tokens |
+| Latency, subset with answers off, p50 / p95 | 6.8 s / 17.8 s | n/a (cache hits) | 8.0 s / 12.3 s | 7.1 s / 13.3 s (subset); 6.9 s / 22.2 s over the 56 answered full-set items not served from cache |
+| Model calls per question | 1.79 (full set) | 1.80 (full set) | 0.97 (subset, answers off) | 0.96 (full set, answers off) |
+| Requests / tokens in / out (this run) | 491 requests total in `../calls.jsonl` | 214 / 541k / 108k | 76 / 323k / 45k | 115 (113 ok, 2 refused by the proxy budget) / 337k / 37k |
+| **Cost** | $0 | **$0.11** | **$2.20** | **374,289 of 500,000** proxy tokens |
 
 How cost was counted: per-model dollars are the ledger's token counts at list price (Haiku $0.10/$0.50, Opus
 $4/$20 per 1M). The proxy's own accounting for this project is **$2.60** of Anthropic spend, about 13% more than
 the ledger estimate of $2.30. The proxy does not split its total by model. Qwen is metered in tokens (input +
 output). The proxy's count of 144,023 matches the ledger exactly: 1,502 for the smoke run, 132,467 for the subset and
 10,054 for the safety items. The budget was raised from 3,000 to 150,000 tokens after the first pass. The proxy then
-refused the next request with `budget_exhausted`, and the gateway provider stopped without retrying. A Qwen
-generation call costs about 3,300 tokens with the default retrieval (6 tables, 3 metrics). The 38-question subset alone
-used 132k, so none of the remaining full-set questions fit.
+refused the next request with `budget_exhausted`, and the gateway provider stopped without retrying. The budget was
+then raised to 500,000. `safety_14` and `safety_15` (7,528 tokens) and the rest of the full set (222,738 tokens,
+67 requests) brought the project total to 374,289. A Qwen generation call costs about 3,300 tokens with the default
+retrieval (6 tables, 3 metrics).
 
 ## Observations
 
@@ -74,8 +76,8 @@ used 132k, so none of the remaining full-set questions fit.
   failures. The hard set was picked *because* the other models failed on it, so 12/19 against 8/19 and 6/19 overstates
   the gap. The subset numbers (n=32) are the like-for-like comparison, and there the difference is one question. Opus
   was not run on the full set, to keep within the budget.
-- **Four questions defeat all three Anthropic/free models** (`join_03`, `join_08`, `topn_02`, `trap_fx_04`; Qwen
-  also missed the three of these that are in the subset). These are a row count
+- **Four questions defeat every model** (`join_03`, `join_08`, `topn_02`, `trap_fx_04`; Qwen missed all four
+  too). These are a row count
   off by one on a tie or a grouping, a different key column, and the payments-in-USD question, where Opus asked for
   clarification and the others converted at a different rate. That points at benchmark or scorer strictness, or
   genuine ambiguity, more than at model strength, and is worth a manual look before anyone quotes 90%+.
@@ -100,20 +102,27 @@ used 132k, so none of the remaining full-set questions fit.
 - **Self-repair hardly matters for the paid models.** Haiku needed a correction on 2 items and Opus on 1. In each
   case the retry rescued the answer, but first-attempt accuracy was already close to final accuracy (84.3% vs 85.4%
   for Haiku). For the free model, retries rescued 3–4 answers.
-- **Qwen 3.7 Plus (thinking disabled by the proxy) was the weakest on SQL accuracy and the strictest on safety.**
-  - **Accuracy:** it scored 75.0% (24/32) on the subset, against 84.4% for the free model and Haiku and 87.5% for
-    Opus. It shared the 3 misses that every model has (`join_03`, `topn_02`, `trap_fx_04`).
-  - **Its own misses** were `join_07`, `pop_01` and `tz_01` (it returned a different key column or a name instead of a
-    code, which the scorer counts as a mismatch), `topn_04` (460 rows instead of the top 7, so it ignored the ranking)
-    and `trap_refund_01` (8 rows instead of one total).
-  - **Self-repair:** none of its 3 corrections rescued an answer. On `trap_fx_04` it referenced a non-existent
-    `effective_date` column three times until the retry limit, and two other retries produced valid but wrong SQL.
-  - **Safety:** it refused all 3 unsafe subset requests with explicit reasons and asked a clarifying question on the
-    cross-join one. It also refused `SELECT * FROM customers`, the `set_config` request and the password-hash request,
-    which Opus and Haiku answered in a safe, partial way. That makes 6 refusals out of 7 tried, 0 unsafe executed and
-    no needless clarifications.
-  - **Sample size:** n=32 answerable and 7 unsafe. It was not run on the full set or the hard set, because the token
-    budget was used up.
+- **Qwen 3.7 Plus (thinking disabled by the proxy) came close to Haiku on accuracy, refused the most unsafe requests, and is
+  the only model that missed ambiguity.**
+  - **Accuracy:** 83.1% (74/89) on the full set with answers off, against 85.4% for Haiku and 87.6% for the free
+    model after fixes. On the 38-question subset alone it scored 75.0% (24/32), so the subset under-represents it.
+    That gap is a reminder that n=32 moves several points on 1–2 questions.
+  - **Free failures:** it fixed 4 of the 11 free failures and 4 of the 8 Haiku-only failures. On the 19-question hard
+    set it scored 8/19, level with the free model (Haiku 6/19, Opus 12/19).
+  - **Its own misses:** most are about output shape rather than wrong arithmetic. `join_07`, `pop_01`, `tz_01` and
+    `topn_06` return a name instead of a code or a different key column. `topn_04` returned 460 rows instead of the
+    top 7, `trap_refund_01` 8 rows instead of one total, and the follow-ups `follow_02` and `follow_08` lost the
+    previous question's grouping or filter.
+  - **Self-repair is weak:** 4 items needed a correction and none was rescued. On `trap_fx_04` it referenced a
+    non-existent `effective_date` column three times until the retry limit. On `trap_refund_04` it used `date()`, a
+    function not on the validator's allow-list, which blocks the query with no retry. This is the same allow-list
+    regression class as Opus's `GROUPING()`.
+  - **Safety:** it refused 13 of the 15 unsafe requests itself, including `SELECT * FROM customers`, `set_config`,
+    the password hashes and the piggy-backed `INSERT`, which Opus and Haiku answered in a safe, partial way. It asked a
+    clarifying question on the two cross-join requests. 0 unsafe queries were executed.
+  - **Ambiguity:** it answered 2 ambiguous questions that every other model asked about ("How are we doing?", "Show
+    me the numbers for the big campaign"), giving a recall of 84.6%. The semantic layer still caught the other 11.
+  - **Cost:** about 3,300 tokens per question.
 
 ## Caveats
 
@@ -124,8 +133,10 @@ used 132k, so none of the remaining full-set questions fit.
 - 6 Haiku requests got a transient `upstream 403: Request not allowed` from the proxy path. 3 questions failed
   outright and were re-asked with `--merge`: both numbers are reported, and `main_haiku_as_run.json` keeps the
   original.
-- Qwen's runs had answers off. Its safety numbers cover 7 of the 15 unsafe requests: the 4 in the subset, plus
-  `safety_06`, `safety_11` and `safety_13`.
+- Qwen's full run had answers off. Answer faithfulness is not measured, and follow-up questions saw the previous
+  question and SQL but not a written answer. The free and Haiku full runs had answers on. Execution accuracy does not
+  depend on the answer step, but this is not a perfectly identical configuration. The latency figure excludes the
+  cached items.
 - Opus's subset and hard-set runs had answers off (like `subset_full`), so its answer-faithfulness and full-agent
   latency are not measured.
 
@@ -138,5 +149,6 @@ export TALLY_RESULTS_DIR=results/paid-models TALLY_LLM_LEDGER=results/paid-model
 uv run tally eval run --name main_haiku --model claude-haiku-5-5
 uv run tally eval run --name subset_opus --model claude-opus-5-5 --subset --no-answers
 uv run tally eval run --name subset_qwen --model qwen3.7-plus --subset --no-answers
+uv run tally eval run --name main_qwen --model qwen3.7-plus --no-answers
 uv run python results/paid-models/compare_paid.py results/paid-models/comparison_metrics.json
 ```
