@@ -5,9 +5,10 @@ never a PII column (directly, through a CTE, a whole-row reference or SELECT *),
 functions. The outermost LIMIT is enforced. What runs is the SQL regenerated from the validated syntax tree with
 comments removed, so the text the database sees is exactly what was checked.
 
-Violations are either *hard* (writes, DDL, several statements, denied functions, system catalogs, explicitly
+Violations are either *hard* (writes, DDL, several statements, dangerous functions, system catalogs, explicitly
 selected PII): the request is blocked and the model gets no second try, or *soft* (unknown tables or columns,
-SELECT * over PII, parse errors): the message goes back to the model for a correction.
+SELECT * over PII, parse errors, functions that are neither allow-listed nor known to be dangerous): the message goes
+back to the model for a correction. Nothing that is not allow-listed ever runs either way.
 """
 
 from __future__ import annotations
@@ -26,9 +27,10 @@ from sqlglot.optimizer.scope import Scope, traverse_scope
 
 DIALECT = "postgres"
 
-# PostgreSQL functions an analytics query may call. Everything else (pg_sleep, dblink, set_config, pg_read_file,
-# lo_import, current_setting, query_to_xml, ...) is refused. Each entry is a sample call; the sqlglot expression
-# classes it parses to are what the validator allows.
+# PostgreSQL functions an analytics query may call. Everything else is refused: functions known to be dangerous
+# (DANGEROUS_FUNCTION_SAMPLES / DANGEROUS_FUNCTION_PREFIXES) block the request outright, any other unknown function
+# is sent back to the model once for a rewrite. Each entry is a sample call; the sqlglot expression classes it parses
+# to are what the validator allows.
 ALLOWED_FUNCTION_SAMPLES: dict[str, str] = {
     # aggregates
     "count": "count(x)",
@@ -55,6 +57,10 @@ ALLOWED_FUNCTION_SAMPLES: dict[str, str] = {
     "covar_samp": "covar_samp(x, y)",
     "regr_slope": "regr_slope(x, y)",
     "regr_intercept": "regr_intercept(x, y)",
+    "regr_r2": "regr_r2(x, y)",
+    "regr_count": "regr_count(x, y)",
+    "any_value": "any_value(x)",
+    "grouping": "grouping(x)",
     # window
     "row_number": "row_number() OVER ()",
     "rank": "rank() OVER ()",
@@ -96,7 +102,9 @@ ALLOWED_FUNCTION_SAMPLES: dict[str, str] = {
     "div": "div(x, 2)",
     "pi": "pi()",
     "width_bucket": "width_bucket(x, 0, 100, 10)",
+    "to_number": "to_number(x, '999D99')",
     # dates and times
+    "date": "date(x)",
     "date_trunc": "date_trunc('month', x)",
     "date_part": "date_part('year', x)",
     "extract": "extract(year FROM x)",
@@ -113,6 +121,9 @@ ALLOWED_FUNCTION_SAMPLES: dict[str, str] = {
     "localtimestamp": "localtimestamp",
     "date_bin": "date_bin(interval '1 day', x, timestamp '2026-01-01')",
     "justify_days": "justify_days(x)",
+    "justify_hours": "justify_hours(x)",
+    "justify_interval": "justify_interval(x)",
+    "make_timestamptz": "make_timestamptz(2026, 1, 1, 0, 0, 0)",
     "isfinite": "isfinite(x)",
     "timezone": "timezone('UTC', x)",
     "at_time_zone": "x AT TIME ZONE 'UTC'",
@@ -152,6 +163,8 @@ ALLOWED_FUNCTION_SAMPLES: dict[str, str] = {
     "format": "format('%s', x)",
     "array_length": "array_length(x, 1)",
     "cardinality": "cardinality(x)",
+    "array_to_string": "array_to_string(x, ',')",
+    "string_to_array": "string_to_array(x, ',')",
     "unnest": "unnest(x)",
     # expressions sqlglot models as functions
     "and_or": "a AND b OR NOT c",
@@ -160,6 +173,45 @@ ALLOWED_FUNCTION_SAMPLES: dict[str, str] = {
     "exists": "EXISTS (SELECT 1)",
     "array": "x = ANY(ARRAY[1, 2])",
 }
+
+# Functions that sleep, reach outside the database, read files, change settings or sequences, run SQL from a string,
+# serialize whole rows, or disclose server details. A query calling one is blocked with no second try.
+DANGEROUS_FUNCTION_SAMPLES: tuple[str, ...] = (
+    "set_config('a', 'b', false)",
+    "current_setting('a')",
+    "nextval('s')",
+    "setval('s', 1)",
+    "currval('s')",
+    "lastval()",
+    "ts_stat('SELECT 1')",
+    "ts_rewrite(x, 'SELECT 1')",
+    "row_to_json(x)",
+    "to_json(x)",
+    "to_jsonb(x)",
+    "version()",
+    "current_user",
+    "session_user",
+    "current_database()",
+    "current_schema()",
+    "current_schemas(true)",
+)
+DANGEROUS_FUNCTION_PREFIXES: tuple[str, ...] = (
+    "pg_",  # pg_sleep, pg_read_file, pg_ls_dir, pg_terminate_backend, pg_reload_conf, ...
+    "lo_",  # lo_import, lo_export, ...
+    "dblink",
+    "postgres_fdw",
+    "txid_",
+    "has_",  # privilege probes
+    "inet_",  # server and client addresses
+    "brin_",
+    "gin_",
+    "binary_upgrade_",
+    "query_to_xml",
+    "table_to_xml",
+    "cursor_to_xml",
+    "schema_to_xml",
+    "database_to_xml",
+)
 
 # Statement and clause types that never belong in a read-only query.
 _DENIED_NODE_NAMES = (
@@ -264,6 +316,23 @@ def allowed_function_classes(extra: tuple[str, ...] = ()) -> frozenset[str]:
             labels.add(_function_label(node))
     labels.update(name.lower() for name in extra)
     return frozenset(labels)
+
+
+@lru_cache(maxsize=1)
+def dangerous_function_classes() -> frozenset[str]:
+    """sqlglot class names (and lower-case names) of the functions that are blocked outright."""
+    labels: set[str] = set()
+    for sample in DANGEROUS_FUNCTION_SAMPLES:
+        tree = sqlglot.parse_one(f"SELECT {sample} FROM t", read=DIALECT)  # noqa: S608  # constant samples
+        for node in tree.find_all(exp.Func):
+            labels.add(_function_label(node))
+    return frozenset(labels)
+
+
+def is_dangerous_function(label: str, display: str) -> bool:
+    """`label` is the sqlglot class name (or the lower-case name sqlglot does not model), `display` the lower-case
+    function name."""
+    return label in dangerous_function_classes() or display.startswith(DANGEROUS_FUNCTION_PREFIXES)
 
 
 class SQLValidator:
@@ -376,9 +445,19 @@ class SQLValidator:
             label = _function_label(node)
             display = str(node.name).lower() if isinstance(node, exp.Anonymous) else (node.sql_name() or label).lower()
             if label not in self.allowed_functions:
-                result.violations.append(
-                    Violation("function_not_allowed", f"function {display}() is not on the allow-list")
-                )
+                if is_dangerous_function(label, display):
+                    result.violations.append(
+                        Violation("function_not_allowed", f"function {display}() is not allowed in a read-only query")
+                    )
+                else:
+                    result.violations.append(
+                        Violation(
+                            "function_not_allowed",
+                            f"function {display}() is not on the allow-list; rewrite the query with standard "
+                            "PostgreSQL aggregates, date functions or casts (for example x::date)",
+                            hard=False,
+                        )
+                    )
             elif display not in used:
                 used.append(display)
         result.functions = used

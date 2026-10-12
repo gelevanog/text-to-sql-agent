@@ -52,10 +52,10 @@ Tally lets people ask in plain English and get the answer in seconds, and makes 
 - **Agent loop with streamed steps**: clarify, retrieve schema, plan and write SQL, expand semantic views, validate, cost-check, execute read-only, self-correct (bounded), choose a chart, write the answer, check its numbers. Every step is sent to the browser as a server-sent event, so the user watches it happen.
 - **Schema understanding**: introspection of tables, columns, types, primary and foreign keys, row counts and sample values of low-cardinality columns (never of personal-data columns), merged with a **semantic layer in YAML**: table and column descriptions, business rules, **metric definitions**, **synonyms** ("sales" → revenue, "clients" → customers), **join paths**, personal-data flags, ambiguous terms, and **semantic views**: reviewed SQL building blocks (`order_revenue`, `order_line_revenue`, `customer_profile`, `subscription_revenue`) that apply currency conversion, refunds and the cancelled / deleted / test-account exclusions once. The model selects from them like tables; Tally expands them into CTEs before validation.
 - **Retrieval, not a schema dump**: BM25 over one document per table, view and metric (names, descriptions, synonyms, column names, sample values), the question expanded with synonyms, plus the tables on the join path between the ones selected. Optional cloud embeddings (`liquid/lfm-2.5-embedding-350m:free`) can be fused in; nothing runs locally.
-- **Static validation with sqlglot**: exactly one statement; a SELECT / WITH tree with no INSERT, UPDATE, DELETE, MERGE, DDL, COPY, SET, `SELECT INTO`, `FOR UPDATE` anywhere (including data-modifying CTEs); allow-listed tables and schemas (no `pg_catalog`, `information_schema` or Tally's own schema); every column resolved through aliases, CTEs, sub-queries and `*` expansion, with **personal-data columns refused**, including quoted identifiers, functions over them and whole-row references (`SELECT c FROM customers c`, `row_to_json(c)`); a **function allow-list** (no `pg_sleep`, `dblink`, `set_config`, `pg_read_file`, `lo_import`, `query_to_xml`...); the outermost **LIMIT enforced**; comments dropped, because **what runs is the SQL regenerated from the checked tree**.
+- **Static validation with sqlglot**: exactly one statement; a SELECT / WITH tree with no INSERT, UPDATE, DELETE, MERGE, DDL, COPY, SET, `SELECT INTO`, `FOR UPDATE` anywhere (including data-modifying CTEs); allow-listed tables and schemas (no `pg_catalog`, `information_schema` or Tally's own schema); every column resolved through aliases, CTEs, sub-queries and `*` expansion, with **personal-data columns refused**, including quoted identifiers, functions over them and whole-row references (`SELECT c FROM customers c`, `row_to_json(c)`); a **function allow-list**: dangerous functions (`pg_sleep`, `dblink`, `set_config`, `pg_read_file`, `lo_import`, `query_to_xml`...) are blocked, any other function not on the list goes back to the model once for a rewrite; the outermost **LIMIT enforced**; comments dropped, because **what runs is the SQL regenerated from the checked tree**.
 - **Cost guard**: `EXPLAIN` before execution; a query is refused when any plan node is estimated above 5 million rows (a cross join shows up there even under `COUNT(*)` or `LIMIT`) or the total cost above a ceiling.
 - **Execution guard**: a separate **read-only login** with column-level grants that exclude personal data, `default_transaction_read_only`, a `READ ONLY` transaction that is always rolled back, `statement_timeout`, a fixed time zone and search path, a row cap, single statements only (psycopg's extended protocol), and optional **row-level security** for a tenant scope (a region) through a separate scoped role.
-- **Self-correction**: SQL errors, validation failures that can be fixed (unknown column, `SELECT *` over personal data), plans that are too expensive, empty results and all-NULL results go back to the model with the error, up to `TALLY_MAX_CORRECTIONS` times. Writes, personal data, denied functions and system catalogs are **blocked without a second try**.
+- **Self-correction**: SQL errors, validation failures that can be fixed (unknown column, `SELECT *` over personal data), plans that are too expensive, empty results and all-NULL results go back to the model with the error, up to `TALLY_MAX_CORRECTIONS` times. An unknown (not allow-listed, not dangerous) function gets exactly one corrective retry. Writes, personal data, dangerous functions and system catalogs are **blocked without a second try**.
 - **Clarifying questions instead of guesses**: the semantic layer marks ambiguous terms with trigger and resolving patterns (gross vs net revenue, calendar vs fiscal quarters, "active customers", "top products" by what). A pending ambiguity is asked about before any model call, with buttons for the options; the choice is remembered for the rest of the conversation. `TALLY_CLARIFY_POLICY=assume` uses the default and states the assumption instead. The model can also ask on its own.
 - **Deterministic chart recommender**: the chart follows from the result's shape, not from the model: KPI tiles for a single row, line for a time series (one line per category when it fits), bar, grouped bar for periods side by side, stacked bar, pie only for shares of a whole with at most 6 slices, otherwise a table. The spec goes to the browser as JSON and is drawn with Recharts.
 - **Answers that only quote the result**: every number in the model's answer must appear in the result (rounding, K/M suffixes and percentages allowed), in the question or among the SQL's literals; otherwise the model is asked once to rewrite, and then a template answer built from the result replaces it.
@@ -78,8 +78,8 @@ flowchart TD
     G -->|"refuse or clarify"| STOP["Show the refusal or the question"]
     G --> X["Expand semantic views into CTEs"]
     X --> V{"sqlglot validator"}
-    V -->|"write, PII, denied function,<br/>system catalog"| BLOCK["Blocked: reason shown,<br/>nothing executed"]
-    V -->|"fixable: unknown column,<br/>SELECT * over PII, parse error"| FIX["Feedback to the model<br/>(at most 2 corrections)"]
+    V -->|"write, PII, dangerous function,<br/>system catalog"| BLOCK["Blocked: reason shown,<br/>nothing executed"]
+    V -->|"fixable: unknown column or function,<br/>SELECT * over PII, parse error"| FIX["Feedback to the model<br/>(at most 2 corrections)"]
     V -->|"ok: regenerated SQL, LIMIT enforced"| E{"EXPLAIN cost guard"}
     E -->|"too expensive"| FIX
     E -->|"ok"| RUN["Run as the read-only role:<br/>READ ONLY, timeout, row cap"]
@@ -201,7 +201,7 @@ export TALLY_QWEN_BASE_URL=https://token-plan.ap-southeast-1.maas.aliyuncs.com/c
 # export TALLY_QWEN_ENABLE_THINKING=false         # sent as enable_thinking to Qwen3 hybrid-thinking models
 ```
 
-The request shape (URL, bearer key, model, `enable_thinking`) is covered by tests against a recorded transport; **no Qwen Cloud request was made for this README** (no key was available), so treat the first run as a pilot. Model ids and endpoints are from Qwen Cloud's documentation as of October 2026 and change often; check the model list of your plan.
+The request shape (URL, bearer key, model, `enable_thinking`) is covered by tests against a recorded transport; **no request has been made through this provider** (the Qwen 3.7 Plus numbers in [Model comparison](#model-comparison) went through the metered `gateway` provider), so treat the first run as a pilot. Model ids and endpoints are from Qwen Cloud's documentation as of October 2026 and change often; check the model list of your plan.
 
 ## Connect your own database
 
@@ -329,7 +329,7 @@ Recall on the semantic layer's own terms is optimistic by construction (I wrote 
 
 ### API calls
 
-[`calls_summary.json`](results/calls_summary.json), from the ledger: **491 requests** to OpenRouter in total (405 succeeded, 70 retried after 429 / 502 / timeouts, 16 errors such as the 403s and empty answers): 21 for the smoke test (10 of them Gemma's rate limits), 208 for the main run, 14 for the re-run of the 7 affected questions, 32 for the full-config subset, 40 and 44 for the two ablations, 47 and 76 for the two comparison models, and 9 for the screenshots (the rest came from the disk cache). Requested models: `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3-ultra-550b-a55b:free`, `dots-studio/dots-3-note-preview:free`, `poolside/laguna-s-2.1:free`, `cohere/north-mini-code:free`, `google/gemma-4-31b-it:free`; served: the first five. **Every requested and served model id ends in `:free`**, enforced by the free-only guard. No Qwen Cloud, OpenAI or Anthropic request was made.
+[`calls_summary.json`](results/calls_summary.json), from the ledger: **491 requests** to OpenRouter in total (405 succeeded, 70 retried after 429 / 502 / timeouts, 16 errors such as the 403s and empty answers): 21 for the smoke test (10 of them Gemma's rate limits), 208 for the main run, 14 for the re-run of the 7 affected questions, 32 for the full-config subset, 40 and 44 for the two ablations, 47 and 76 for the two comparison models, and 9 for the screenshots (the rest came from the disk cache). Requested models: `nvidia/nemotron-3-super-120b-a12b:free`, `nvidia/nemotron-3-ultra-550b-a55b:free`, `dots-studio/dots-3-note-preview:free`, `poolside/laguna-s-2.1:free`, `cohere/north-mini-code:free`, `google/gemma-4-31b-it:free`; served: the first five. **Every requested and served model id ends in `:free`**, enforced by the free-only guard. No Qwen Cloud, OpenAI or Anthropic request was made in these runs; the paid models in [Model comparison](#model-comparison) were a separate, opt-in run.
 
 ### Screenshots
 
@@ -347,6 +347,33 @@ Taken with headless Chrome from the running app ([`capture.mjs`](docs/screenshot
 ![Audit log](docs/screenshots/audit-log.png)
 
 <sub>The audit log after the screenshot session: question, outcome, rows, duration, model calls, model, violations; no result data.</sub>
+
+## Model comparison
+
+The defaults stay free-only (OpenRouter `:free` models). Stronger, billed models are an explicit opt-in through the `gateway` provider, an OpenAI-compatible endpoint that is refused unless `TALLY_ALLOW_PAID_MODELS=true`:
+
+```bash
+export TALLY_LLM_PROVIDER=gateway TALLY_ALLOW_PAID_MODELS=true
+export TALLY_LLM_BASE_URL=https://your-gateway.example/v1 TALLY_LLM_API_KEY=...
+export TALLY_LLM_MODEL=claude-haiku-5-5           # or claude-opus-5-5, qwen3.7-plus
+```
+
+Same database, benchmark and harness as above, single runs on 2026-10-12 ([`results/paid-models/`](results/paid-models)):
+
+| Model | Full set (89 answerable) | Subset (32 answerable) | Unsafe executed / refused by model (15) | Cost |
+|---|---|---|---|---|
+| Free `nemotron-3-super:free` | 87.6% (78/89) after fixes | 84.4% (27/32) | 0 / 12 | $0 |
+| Claude Haiku 5.5 | 85.4% (76/89) | 84.4% (27/32) | 0 / 11 | ~$0.11 for 117 questions |
+| Claude Opus 5.5 | not run | 87.5% (28/32); 12/19 on a hard set | 0 / 10 | ~$2.20 (subset, hard set, safety) |
+| Qwen 3.7 Plus | 83.1% (74/89), answers off | 75.0% (24/32) | 0 / 13 | ~374k gateway tokens |
+
+- **Free is enough for accuracy on this benchmark.** Neither paid model run on the full set (Haiku, Qwen) beat the free model after fixes; on the subset Opus leads by one question, which is within the noise of n=32.
+- **Haiku's gain is speed and polish, not accuracy**: p50 7.2 s vs 15.1 s end to end, 100% valid SQL, no needless clarifications, for about $0.11.
+- **Opus helps most on the hard questions** (12 of 19 that the free model or Haiku missed), but that set was chosen because others failed, so it overstates the gap. Four questions defeat every model, which points at the benchmark or scorer as much as at the models.
+- **The safety layers hold with every model**: 0 unsafe queries executed. Haiku and Opus sometimes answered the safe half of a mixed request instead of refusing it; Qwen refused the most.
+- **Notable failure mode**: Opus (`GROUPING()`) and Qwen (`date()`) each had a question blocked by the validator's function allow-list with no retry. Both functions are now allow-listed and unknown functions get one corrective retry; the evals were not re-run after that fix.
+
+Full per-metric numbers, how cost was counted, and caveats (different code versions, answers off for some runs, single samples): [`results/paid-models/COMPARISON.md`](results/paid-models/COMPARISON.md).
 
 ## Key design decisions
 
@@ -378,9 +405,10 @@ All settings are environment variables (or `.env`); [`.env.example`](.env.exampl
 |---|---|---|
 | `TALLY_DATABASE_URL` | `postgresql://tally:tally@localhost:5432/tally` | owner connection: demo seed, reader role, Tally's own tables |
 | `TALLY_READER_DATABASE_URL` | the owner URL with the reader's credentials | the read-only login every generated query runs as |
-| `TALLY_LLM_PROVIDER` | `fake` | `fake`, `openrouter`, `qwen`, `openai`, `anthropic`, `openai_compatible` |
+| `TALLY_LLM_PROVIDER` | `fake` | `fake`, `openrouter`, `qwen`, `openai`, `anthropic`, `openai_compatible`, `gateway` |
 | `TALLY_LLM_MODEL` / `TALLY_LLM_FALLBACK_MODELS` | provider default / none | model id; OpenRouter fallbacks (comma-separated) |
 | `TALLY_REQUIRE_FREE_MODELS` | `true` | refuse non-`:free` OpenRouter ids and paid served models |
+| `TALLY_ALLOW_PAID_MODELS` | `false` | explicit opt-in for the metered `gateway` provider (refused otherwise) |
 | `TALLY_CLARIFY_POLICY` | `ask` | `ask` a clarifying question, or `assume` the default and say so |
 | `TALLY_MAX_CORRECTIONS` | `2` | self-correction retries |
 | `TALLY_RETRIEVAL_MODE` / `TALLY_SEMANTIC_LAYER` | `retrieval` / `true` | `full` dumps the whole schema; `false` drops the semantic layer (ablations) |

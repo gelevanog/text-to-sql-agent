@@ -47,6 +47,8 @@ from tally.sql.validator import SQLValidator, ValidationResult
 Emit = Callable[[str, dict[str, Any]], None]
 POLICY_CODES = frozenset({"pii_via_star"})
 """Soft violations that still mean "blocked" once the correction budget is spent."""
+ONE_RETRY_CODES = frozenset({"function_not_allowed"})
+"""Soft violations the model gets exactly one corrective retry for; a repeat blocks the request."""
 
 
 @dataclass
@@ -374,7 +376,7 @@ class Agent:
         )
         if not validation.ok:
             attempt.error = validation.feedback()
-            if validation.hard:
+            if validation.hard or self._repeated_one_retry_violation(result):
                 self._block(result, sink, "validator", [v.message for v in validation.violations], plan.sql)
                 return None
             return validation.feedback(), False
@@ -546,6 +548,16 @@ class Agent:
         if completion.model and completion.model not in result.served_models:
             result.served_models.append(completion.model)
         return completion.text
+
+    @staticmethod
+    def _repeated_one_retry_violation(result: AgentResult) -> bool:
+        """True when the latest attempt and an earlier one both hit a one-retry violation (an unknown function)."""
+
+        def codes(attempt: Attempt) -> set[str]:
+            return {str(v.get("code")) for v in (attempt.validation or {}).get("violations", [])}
+
+        *earlier, latest = result.attempts
+        return bool(codes(latest) & ONE_RETRY_CODES) and any(codes(a) & ONE_RETRY_CODES for a in earlier)
 
     def _block(self, result: AgentResult, sink: _Sink, layer: str, reasons: list[str], sql: str) -> None:
         result.status = "blocked"

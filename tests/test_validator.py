@@ -54,6 +54,14 @@ SAFE = [
     # an output alias named like the CTE it reads from (a false positive found by the real-model run)
     "WITH d AS (SELECT r.order_item_id FROM refunds r) SELECT order_item_id, count(*) AS d FROM d "
     "GROUP BY order_item_id ORDER BY d DESC",
+    # harmless functions stronger models used in the paid-model evals (GROUPING() from Opus, date() from Qwen)
+    "SELECT coalesce(status, 'TOTAL'), count(*) FROM orders GROUP BY GROUPING SETS ((status), ()) "
+    "ORDER BY GROUPING(status), 2 DESC",
+    "SELECT status, count(*) FROM orders GROUP BY ROLLUP (status)",
+    "SELECT DATE(r.refunded_at) AS d, count(*) FROM refunds r GROUP BY DATE(r.refunded_at)",
+    "SELECT any_value(product_id), regr_r2(quantity, unit_price), regr_count(quantity, unit_price) FROM order_items",
+    "SELECT justify_interval(max(ordered_at) - min(ordered_at)) FROM orders",
+    "SELECT array_to_string(array_agg(DISTINCT status), ', ') FROM orders",
 ]
 
 UNSAFE = [
@@ -89,6 +97,16 @@ UNSAFE = [
     ("SELECT query_to_xml('SELECT * FROM customers', true, true, '')", "function_not_allowed"),
     ("SELECT pg_terminate_backend(1)", "function_not_allowed"),
     ("SELECT id FROM orders WHERE id = (SELECT pg_sleep(1))::int", "function_not_allowed"),
+    ("SELECT pg_ls_dir('.')", "function_not_allowed"),
+    ("SELECT dblink_exec('host=evil', 'DROP TABLE orders')", "function_not_allowed"),
+    ("SELECT nextval('orders_id_seq')", "function_not_allowed"),
+    ("SELECT txid_current()", "function_not_allowed"),
+    ("SELECT has_table_privilege('customers', 'SELECT')", "function_not_allowed"),
+    ("SELECT ts_stat('SELECT email::tsvector FROM customers')", "function_not_allowed"),
+    ("SELECT version()", "function_not_allowed"),
+    ("SELECT current_user", "function_not_allowed"),
+    ("SELECT inet_server_addr()", "function_not_allowed"),
+    ("SELECT count(*) FROM orders WHERE date(ordered_at) > date(pg_sleep(5)::text)", "function_not_allowed"),
     # system catalogs and other schemas
     ("SELECT * FROM pg_catalog.pg_authid", "system_table"),
     ("SELECT * FROM pg_user", "system_table"),
@@ -120,6 +138,10 @@ SOFT = [
     ('SELECT "EMAIL" FROM customers', "unknown_column"),
     ("SELECT nonexistent FROM orders", "unknown_column"),
     ("SELECT * FROM no_such_table", "unknown_table"),
+    # functions neither allow-listed nor known to be dangerous go back to the model for a rewrite
+    ("SELECT md5(name) FROM products", "function_not_allowed"),
+    ("SELECT clock_timestamp()", "function_not_allowed"),
+    ("SELECT jsonb_build_object('n', count(*)) FROM orders", "function_not_allowed"),
     ("SELEC id FROM orders", "parse_error"),
     ("", "empty"),
 ]
@@ -145,6 +167,18 @@ def test_fixable_mistakes_are_soft(validator: SQLValidator, sql: str, code: str)
     result = validator.validate(sql)
     assert code in [v.code for v in result.violations]
     assert not result.hard
+
+
+def test_unknown_function_feedback_names_it_and_runs_nothing(validator: SQLValidator) -> None:
+    result = validator.validate("SELECT clock_timestamp() AS t FROM orders")
+    assert not result.ok and not result.hard and result.sql == ""
+    assert "clock_timestamp()" in result.feedback() and "allow-list" in result.feedback()
+
+
+def test_dangerous_function_wins_over_an_unknown_one(validator: SQLValidator) -> None:
+    result = validator.validate("SELECT md5(name), pg_read_file('/etc/passwd') FROM products")
+    assert result.hard
+    assert [v.hard for v in result.violations if v.code == "function_not_allowed"] == [False, True]
 
 
 def test_limit_is_added_lowered_or_kept(validator: SQLValidator) -> None:

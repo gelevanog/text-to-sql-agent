@@ -94,6 +94,8 @@ def test_without_self_correction_the_first_error_is_final(agent_factory: Factory
         ("SELECT email FROM customers", "validator"),
         ("SELECT 1; DROP TABLE orders", "validator"),
         ("SELECT pg_sleep(30)", "validator"),
+        ("SELECT set_config('tally.region_scope', '*', false)", "validator"),
+        ("SELECT count(*) FROM orders WHERE pg_read_file('/etc/passwd') <> ''", "validator"),
     ],
 )
 def test_unsafe_sql_is_blocked_without_a_second_try(agent_factory: Factory, sql: str, layer: str) -> None:
@@ -101,6 +103,27 @@ def test_unsafe_sql_is_blocked_without_a_second_try(agent_factory: Factory, sql:
     result = agent.run("Do something unsafe")
     assert result.status == "blocked" and result.blocked and result.blocked["layer"] == layer
     assert result.llm_calls == 1 and result.rows == [] and result.executed_sql == ""
+
+
+def test_an_unknown_function_gets_one_corrective_retry(agent_factory: Factory) -> None:
+    unknown = sql_reply("SELECT clock_timestamp() AS t, count(*) AS n FROM orders")
+    fixed = sql_reply("SELECT count(*) AS n FROM orders WHERE ordered_at < DATE '2026-10-01'")
+    agent, model = agent_factory([unknown, fixed, "There were some orders."])
+    result = agent.run("How many orders so far?")
+    assert result.status == "answered" and result.corrections == 1
+    assert [a.stage for a in result.attempts] == ["validation", "ok"]
+    correction = model.prompts[1][-1]["content"]
+    assert "clock_timestamp()" in correction and "allow-list" in correction
+
+
+def test_a_repeated_unknown_function_is_blocked_after_one_retry(agent_factory: Factory) -> None:
+    first = sql_reply("SELECT clock_timestamp() AS t FROM orders")
+    second = sql_reply("SELECT statement_timestamp() AS t FROM orders")
+    agent, model = agent_factory([first, second, second], max_corrections=2)
+    result = agent.run("What time is it on the server?")
+    assert result.status == "blocked" and result.blocked and result.blocked["layer"] == "validator"
+    assert "statement_timestamp()" in result.blocked["reasons"][0]
+    assert result.llm_calls == 2 and result.executed_sql == "" and len(model.replies) == 1
 
 
 def test_select_star_over_pii_is_corrected_or_blocked(agent_factory: Factory) -> None:
