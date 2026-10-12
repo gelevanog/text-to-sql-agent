@@ -117,6 +117,9 @@ class OpenAICompatibleModel:
         if not str(content).strip():
             if choices[0].get("finish_reason") == "length":
                 raise LLMError("empty answer: max_tokens reached before any output")
+            if choices[0].get("finish_reason") == "content_filter":
+                # The provider's own safety filter declined the prompt: the same prompt will be declined again.
+                raise LLMError("the model declined to answer (finish_reason=content_filter)")
             raise RetryableLLMError(f"empty answer (finish_reason={choices[0].get('finish_reason')})")
         if choices[0].get("finish_reason") == "length":
             # A reasoning model can spend the budget thinking and return the first words of an answer.

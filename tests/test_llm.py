@@ -209,6 +209,7 @@ def test_missing_keys_fail_clearly() -> None:
         (400, {"error": {"message": "bad request"}}, LLMError),
         (200, {"model": "m", "choices": [{"message": {"content": ""}, "finish_reason": "length"}]}, LLMError),
         (200, {"model": "m", "choices": [{"message": {"content": "In APAC"}, "finish_reason": "length"}]}, LLMError),
+        (200, {"model": "m", "choices": [{"message": {"content": ""}, "finish_reason": "content_filter"}]}, LLMError),
     ],
 )
 def test_error_mapping(status: int, payload: dict[str, Any], error: type[Exception]) -> None:
@@ -220,6 +221,8 @@ def test_error_mapping(status: int, payload: dict[str, Any], error: type[Excepti
         model.complete(MESSAGES, max_tokens=10)
     if status == 429:
         assert info.value.retry_after == 2.0  # type: ignore[attr-defined]
+    if error is LLMError:
+        assert not isinstance(info.value, RetryableLLMError)
 
 
 # ---- budget wrapper ----------------------------------------------------------------------------------------------
